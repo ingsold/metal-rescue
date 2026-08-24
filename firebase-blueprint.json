@@ -1,0 +1,120 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["usuario_donante", "administrador"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Donated item for sale",
+      "type": "object",
+      "properties": {
+        "imagen_url": { "type": "string", "maxLength": 500 },
+        "banda_artista": { "type": "string", "maxLength": 100 },
+        "tipo_prenda": { "type": "string", "maxLength": 50 },
+        "estado_conservacion": { "type": "string", "maxLength": 50 },
+        "origen_adquisicion": { "type": "string", "maxLength": 100 },
+        "precio_estimado_donante": { "type": "number" },
+        "precio_sugerido_ia": { "type": "number" },
+        "autenticidad_ia": { "type": "string", "maxLength": 50 },
+        "precio_final_aprobado": { "type": "number" },
+        "descripcion_marketing": { "type": "string", "maxLength": 1000 },
+        "estado_publicacion": { "type": "string", "enum": ["borrador_pendiente", "aprobado_publicado", "rechazado", "vendido"] },
+        "fecha_donacion": { "type": "string", "maxLength": 100 },
+        "fecha_venta": { "type": "string", "maxLength": 100 },
+        "evento_origen": { "type": "string", "maxLength": 100 },
+        "usuario_donante_id": { "type": "string", "maxLength": 128 },
+        "usuario_donante_nombre": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["imagen_url", "banda_artista", "tipo_prenda", "estado_conservacion", "precio_estimado_donante", "estado_publicacion", "fecha_donacion", "usuario_donante_id"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "User order with items",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 100 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["pendiente", "lista"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "userEmail", "total", "status", "createdAt"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Upcoming music event where booth will be",
+      "type": "object",
+      "properties": {
+        "nombre": { "type": "string", "maxLength": 150 },
+        "fecha": { "type": "string", "maxLength": 50 },
+        "lugar": { "type": "string", "maxLength": 100 },
+        "direccion": { "type": "string", "maxLength": 200 },
+        "imagen_url": { "type": "string", "maxLength": 500 },
+        "estado": { "type": "string", "enum": ["activo", "cancelado"] }
+      },
+      "required": ["nombre", "fecha", "lugar", "direccion", "estado"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "Notifications for users",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "message": { "type": "string", "maxLength": 500 },
+        "read": { "type": "boolean" },
+        "date": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["userId", "message", "read", "date"]
+    },
+    "ShelterDelivery": {
+      "title": "ShelterDelivery",
+      "description": "Deliveries and impact records",
+      "type": "object",
+      "properties": {
+        "refugio_nombre": { "type": "string", "maxLength": 150 },
+        "monto_donado_gtq": { "type": "number" },
+        "alimento_comprado_kg": { "type": "number" },
+        "foto_evidencia_url": { "type": "string", "maxLength": 500 },
+        "fecha_entrega": { "type": "string", "maxLength": 50 },
+        "descripcion_impacto": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["refugio_nombre", "monto_donado_gtq", "fecha_entrega"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Registered users"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Donated items"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "User orders"
+    },
+    "/events/{eventId}": {
+      "schema": { "$ref": "#/entities/Event" },
+      "description": "Music events"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/AppNotification" },
+      "description": "User notifications"
+    },
+    "/deliveries/{deliveryId}": {
+      "schema": { "$ref": "#/entities/ShelterDelivery" },
+      "description": "Shelter delivery logs"
+    }
+  }
+}

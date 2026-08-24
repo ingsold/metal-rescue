@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sabbath-950: #0a0812;
+  --color-sabbath-900: #120e1e;
+  --color-sabbath-800: #211936;
+  --color-sabbath-700: #3c2a61;
+  --color-sabbath-600: #5b3d91;
+  --color-sabbath-500: #7b4fbe;
+  --color-sabbath-400: #9d6fdf;
+  
+  --color-zinc-950: #09090b;
+  --color-zinc-900: #18181b;
+  
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Oswald', 'Bebas Neue', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-sabbath-950 text-zinc-200 antialiased selection:bg-sabbath-500 selection:text-white;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-wide uppercase text-zinc-100;
+  }
+}
