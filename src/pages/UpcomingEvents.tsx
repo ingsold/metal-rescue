@@ -30,11 +30,11 @@ export const UpcomingEvents: React.FC = () => {
           
           return (
             <div key={event.id} className={`group bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden shadow-lg flex flex-col sm:flex-row transition-colors ${!isCanceled ? 'hover:border-sabbath-500' : 'opacity-80'}`}>
-              <div className="sm:w-2/5 h-48 sm:h-auto relative overflow-hidden">
+              <div className="sm:w-2/5 h-48 sm:h-auto relative overflow-hidden flex-shrink-0">
                 <img 
                   src={event.imagen_url} 
                   alt={event.nombre} 
-                  className={`w-full h-full object-cover transition-transform duration-700 ${!isCanceled ? 'group-hover:scale-110' : 'grayscale'}`} 
+                  className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${!isCanceled ? 'group-hover:scale-110' : 'grayscale'}`} 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-sabbath-900 via-sabbath-900/40 to-transparent"></div>
                 

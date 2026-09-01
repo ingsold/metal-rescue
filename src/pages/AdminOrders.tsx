@@ -1,9 +1,12 @@
 import React, { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Clock, CheckCircle2, ShieldCheck, Mail, MapPin, Phone } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { Clock, CheckCircle2, ShieldCheck, Mail, MapPin, Phone, XCircle } from 'lucide-react';
+import { ImageGallery } from '../components/ImageGallery';
 
 export const AdminOrders: React.FC = () => {
   const { orders, fetchOrders, updateOrderStatus, allUsers, fetchAllUsers } = useApp();
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchOrders();
@@ -40,6 +43,10 @@ export const AdminOrders: React.FC = () => {
                       <span className="flex items-center space-x-1 text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded border border-yellow-500/20 text-xs font-bold uppercase">
                         <Clock className="w-3 h-3" /> <span>Pendiente</span>
                       </span>
+                    ) : order.status === 'cancelada' ? (
+                      <span className="flex items-center space-x-1 text-red-400 bg-red-400/10 px-3 py-1 rounded border border-red-400/20 text-xs font-bold uppercase">
+                        <XCircle className="w-3 h-3" /> <span>Cancelada</span>
+                      </span>
                     ) : (
                       <span className="flex items-center space-x-1 text-green-400 bg-green-400/10 px-3 py-1 rounded border border-green-400/20 text-xs font-bold uppercase">
                         <CheckCircle2 className="w-3 h-3" /> <span>Lista / Pagada</span>
@@ -75,7 +82,7 @@ export const AdminOrders: React.FC = () => {
                     <div className="space-y-3">
                       {order.items.map(item => (
                         <div key={item.id} className="flex bg-sabbath-950 rounded-lg p-2 gap-3 items-center border border-sabbath-800/50">
-                          <img src={item.imagen_url} alt={item.banda_artista} className="w-12 h-12 object-cover rounded" />
+                          <div className="w-12 h-12 rounded overflow-hidden flex-shrink-0"><ImageGallery images={item.imagenes_url && item.imagenes_url.length > 0 ? item.imagenes_url : [item.imagen_url]} alt={item.banda_artista} thumbnail /></div>
                           <div className="flex-1 min-w-0">
                             <div className="font-bold text-white text-sm truncate uppercase">{item.banda_artista}</div>
                             <div className="text-xs text-zinc-500">{item.tipo_prenda}</div>
@@ -89,17 +96,34 @@ export const AdminOrders: React.FC = () => {
                   </div>
 
                   {order.status === 'pendiente' && (
-                    <div className="mt-auto pt-4 border-t border-sabbath-800">
+                    <div className="mt-auto pt-4 border-t border-sabbath-800 flex flex-col gap-3">
                       <button
-                        onClick={() => {
-                          if(window.confirm('¿Confirmas que esta orden ha sido pagada y entregada? Las prendas se marcarán como VENDIDAS.')) {
-                            updateOrderStatus(order.id, 'lista');
+                        onClick={async () => {
+                          try {
+                            await updateOrderStatus(order.id, 'lista');
+                            showToast('Orden marcada como completada.', 'success');
+                          } catch (e: any) {
+                            showToast(e.message || 'Error al actualizar orden', 'error');
                           }
                         }}
                         className="w-full bg-sabbath-600 hover:bg-sabbath-500 text-white py-3 rounded-md font-bold transition-colors flex justify-center items-center gap-2"
                       >
                         <CheckCircle2 className="w-5 h-5" />
                         Marcar como Lista / Pagada
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await updateOrderStatus(order.id, 'cancelada');
+                            showToast('Orden cancelada. Las prendas regresaron al catálogo.', 'info');
+                          } catch (e: any) {
+                            showToast(e.message || 'Error al cancelar orden', 'error');
+                          }
+                        }}
+                        className="w-full bg-sabbath-900 border border-sabbath-800 hover:bg-sabbath-800 hover:border-red-500/50 hover:text-red-400 text-zinc-400 py-3 rounded-md font-bold transition-colors flex justify-center items-center gap-2"
+                      >
+                        <XCircle className="w-5 h-5" />
+                        Cancelar y Devolver al Catálogo
                       </button>
                     </div>
                   )}

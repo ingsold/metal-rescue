@@ -26,7 +26,7 @@ export const ManageEvents: React.FC = () => {
 
   const handleEditClick = (event: any) => {
     setEditingId(event.id);
-    setNombre(event.nombre);
+    setNombre(event.nombre || '');
     
     // Format date for datetime-local input
     const d = new Date(event.fecha);
@@ -34,9 +34,9 @@ export const ManageEvents: React.FC = () => {
     const localISOTime = (new Date(d.getTime() - tzoffset)).toISOString().slice(0, 16);
     setFecha(localISOTime);
     
-    setLugar(event.lugar);
-    setDireccion(event.direccion);
-    setImagenUrl(event.imagen_url);
+    setLugar(event.lugar || '');
+    setDireccion(event.direccion || '');
+    setImagenUrl(event.imagen_url || '');
     setImageFile(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -45,11 +45,16 @@ export const ManageEvents: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
-      setImagenUrl(URL.createObjectURL(file));
+      try {
+        const compressedBase64 = await resizeImage(file, 800, 800);
+        setImagenUrl(compressedBase64);
+      } catch (err) {
+        console.error("Error resizing image:", err);
+      }
     }
   };
 
@@ -209,7 +214,7 @@ export const ManageEvents: React.FC = () => {
               
               return (
                 <div key={event.id} className={`bg-sabbath-900 border ${editingId === event.id ? 'border-sabbath-500 shadow-lg shadow-sabbath-500/20' : 'border-sabbath-800'} rounded-xl overflow-hidden flex flex-col sm:flex-row relative transition-all`}>
-                  <div className="w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 relative">
+                  <div className="w-full sm:w-48 h-48 flex-shrink-0 relative overflow-hidden">
                     {event.imagen_url ? (
                       <img src={event.imagen_url} alt={event.nombre} className={`w-full h-full object-cover ${event.estado === 'cancelado' ? 'grayscale opacity-50' : ''}`} />
                     ) : (

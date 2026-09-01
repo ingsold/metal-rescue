@@ -1,11 +1,12 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const auth = getAuth();
+export const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 export enum OperationType {
   CREATE = 'create',
@@ -51,5 +52,10 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
+  // Dispatch custom event for UI to pick up
+  if (typeof window !== 'undefined') {
+    const event = new CustomEvent('firestore-error', { detail: errInfo });
+    window.dispatchEvent(event);
+  }
   throw new Error(JSON.stringify(errInfo));
 }

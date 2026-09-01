@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Product, ShelterDelivery, Event, User, AppNotification, AuthenticityStatus, Order } from '../types';
+import { GoldenSetEvaluation, Product, ShelterDelivery, Event, User, AppNotification, AuthenticityStatus, Order, Ally } from '../types';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { 
@@ -17,6 +17,7 @@ interface AppState {
   user: User | null;
   products: Product[];
   deliveries: ShelterDelivery[];
+  allies: Ally[];
   events: Event[];
   notifications: AppNotification[];
   allUsers: User[]; // Admin only
@@ -39,6 +40,7 @@ interface AppState {
   updateUserRole: (userId: string, role: 'donante' | 'administrador') => Promise<void>;
   
   // App Methods
+  addGoldenSetEvaluation: (evalData: Omit<GoldenSetEvaluation, "id_muestra" | "fecha_evaluacion">) => Promise<void>;
   addProduct: (product: Omit<Product, 'id' | 'estado_publicacion' | 'fecha_donacion' | 'usuario_donante_id' | 'usuario_donante_nombre'> & { usuario_donante_id?: string, usuario_donante_nombre?: string }) => Promise<void>;
   updateProductStatus: (id: string, status: Product['estado_publicacion'], finalPrice?: number, marketingDesc?: string) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -46,6 +48,16 @@ interface AppState {
   editEvent: (id: string, updatedEvent: Partial<Event>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   cancelEvent: (id: string) => Promise<void>;
+  
+  // Deliveries Admin
+  addDelivery: (delivery: Omit<ShelterDelivery, 'id'>) => Promise<void>;
+  editDelivery: (id: string, updated: Partial<ShelterDelivery>) => Promise<void>;
+  deleteDelivery: (id: string) => Promise<void>;
+  
+  // Allies Admin
+  addAlly: (ally: Omit<Ally, 'id'>) => Promise<void>;
+  editAlly: (id: string, updated: Partial<Ally>) => Promise<void>;
+  deleteAlly: (id: string) => Promise<void>;
   markNotificationsAsRead: (userId: string) => Promise<void>;
   
   // Cart & Orders
@@ -54,7 +66,7 @@ interface AppState {
   clearCart: () => void;
   createOrder: (userId: string, userEmail: string, userName: string) => Promise<void>;
   fetchOrders: () => Promise<void>;
-  updateOrderStatus: (orderId: string, status: 'lista') => Promise<void>;
+  updateOrderStatus: (orderId: string, status: 'lista' | 'cancelada') => Promise<void>;
   
   isLoading: boolean;
 }
@@ -65,6 +77,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [user, setUser] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [deliveries, setDeliveries] = useState<ShelterDelivery[]>([]);
+  const [allies, setAllies] = useState<Ally[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -120,6 +133,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       onSnapshot(collection(db, 'deliveries'), (snapshot) => {
         setDeliveries(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ShelterDelivery)));
       }, (err) => handleFirestoreError(err, OperationType.GET, 'deliveries'))
+    );
+
+    unsubs.push(
+      onSnapshot(collection(db, 'allies'), (snapshot) => {
+        setAllies(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Ally)));
+      }, (err) => handleFirestoreError(err, OperationType.GET, 'allies'))
     );
     return () => unsubs.forEach(unsub => unsub());
   }, []);
@@ -340,6 +359,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Content Methods
+  const addGoldenSetEvaluation = async (evalData: Omit<GoldenSetEvaluation, "id_muestra" | "fecha_evaluacion">) => {
+    try {
+      const docRef = doc(collection(db, "evaluaciones_golden_set"));
+      const id_muestra = docRef.id;
+      await setDoc(docRef, {
+        ...evalData,
+        id_muestra,
+        fecha_evaluacion: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error("Error saving Golden Set Evaluation", e);
+    }
+  };
   const addProduct = async (newProdData: Omit<Product, 'id' | 'estado_publicacion' | 'fecha_donacion' | 'usuario_donante_id' | 'usuario_donante_nombre'> & { usuario_donante_id?: string, usuario_donante_nombre?: string }) => {
     if (!user) return;
     
@@ -423,6 +455,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const addDelivery = async (delivery: Omit<ShelterDelivery, 'id'>) => {
+    try {
+      const id = `del_${Date.now()}`;
+      await setDoc(doc(db, 'deliveries', id), delivery);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'deliveries');
+    }
+  };
+
+  const editDelivery = async (id: string, updated: Partial<ShelterDelivery>) => {
+    try {
+      await updateDoc(doc(db, 'deliveries', id), updated);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `deliveries/${id}`);
+    }
+  };
+
+  const deleteDelivery = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'deliveries', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `deliveries/${id}`);
+    }
+  };
+
+  const addAlly = async (ally: Omit<Ally, 'id'>) => {
+    try {
+      const id = `ally_${Date.now()}`;
+      await setDoc(doc(db, 'allies', id), ally);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'allies');
+    }
+  };
+
+  const editAlly = async (id: string, updated: Partial<Ally>) => {
+    try {
+      await updateDoc(doc(db, 'allies', id), updated);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `allies/${id}`);
+    }
+  };
+
+  const deleteAlly = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'allies', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `allies/${id}`);
+    }
+  };
+
   const markNotificationsAsRead = async (userId: string) => {
     try {
       const unread = notifications.filter(n => n.userId === userId && !n.read);
@@ -487,33 +569,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const updateOrderStatus = async (orderId: string, status: 'lista') => {
-    if (user?.role !== 'administrador') return;
+  const updateOrderStatus = async (orderId: string, status: 'lista' | 'cancelada') => {
+    if (user?.role !== 'administrador') {
+      throw new Error('No tienes permisos de administrador.');
+    }
     try {
       await updateDoc(doc(db, 'orders', orderId), { status });
       
-      // If the status is 'lista', we mark products as 'vendido'
-      if (status === 'lista') {
-        const order = orders.find(o => o.id === orderId);
-        if (order) {
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        if (status === 'lista') {
           for (const item of order.items) {
             await updateProductStatus(item.id, 'vendido', item.precio_final_aprobado);
+          }
+        } else if (status === 'cancelada') {
+          for (const item of order.items) {
+            await updateProductStatus(item.id, 'aprobado_publicado');
           }
         }
       }
       
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update order status failed", error);
+      throw error;
     }
   };
 
   return (
     <AppContext.Provider value={{ 
-      user, products, deliveries, events, notifications, allUsers, cart, orders,
+      user, products, deliveries, events, notifications, allUsers, cart, orders, allies,
       loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword, logout,
       updateProfile, fetchAllUsers, updateUserStatus, updateUserRole,
-      addProduct, updateProductStatus, deleteProduct, addEvent, editEvent, deleteEvent, cancelEvent, markNotificationsAsRead, 
+      addGoldenSetEvaluation,
+      addProduct, updateProductStatus, deleteProduct, addEvent, editEvent, deleteEvent, cancelEvent,
+      addDelivery, editDelivery, deleteDelivery,
+      addAlly, editAlly, deleteAlly, markNotificationsAsRead, 
       addToCart, removeFromCart, clearCart, createOrder, fetchOrders, updateOrderStatus,
       isLoading 
     }}>

@@ -82,6 +82,12 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isOwner(resource.data.usuario_donante_id) && resource.data.estado_publicacion == 'borrador_pendiente');
     }
     
+    match /evaluaciones_golden_set/{evalId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
     match /orders/{orderId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
@@ -96,6 +102,11 @@ service cloud.firestore {
     }
     
     match /deliveries/{deliveryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /allies/{allyId} {
       allow read: if true;
       allow write: if isAdmin();
     }

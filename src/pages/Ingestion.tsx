@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Camera, Upload, Sparkles, Image as ImageIcon, X } from 'lucide-react';
@@ -6,9 +6,16 @@ import { AcquisitionOrigin } from '../types';
 import { compressImage } from '../utils/imageUtils';
 
 export const Ingestion: React.FC = () => {
-  const { addProduct, user } = useApp();
+  const { addProduct, addGoldenSetEvaluation, user, isLoading } = useApp();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/login?mode=register');
+    }
+  }, [user, isLoading, navigate]);
+
   
   const [banda, setBanda] = useState('');
   const [tipo, setTipo] = useState('Playera');
@@ -53,6 +60,22 @@ export const Ingestion: React.FC = () => {
     const newUrls = [...imageUrls];
     newUrls.splice(index, 1);
     setImageUrls(newUrls);
+  };
+
+
+  const resetForm = () => {
+    setBanda('');
+    setTipo('Playera');
+    setTalla('L');
+    setOtraTalla('');
+    setEstado('Vintage/Desgastado');
+    setOrigen('Mercado Local');
+    setEvento('');
+    setPrecio('');
+    setAdminDonorName('');
+    setImageFiles([]);
+    setImageUrls([]);
+    setStatusMessage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,13 +132,30 @@ export const Ingestion: React.FC = () => {
       setStatusMessage({
         type: 'success',
         html: `
-          <div class="bg-green-900/50 border border-green-500 text-green-200 p-4 rounded-lg mt-4 text-left">
-            <h4 class="font-bold text-lg">¡Prenda Catalogada Exitosamente! 🎉</h4>
+          <div class="bg-green-900/50 border border-green-500 text-green-200 p-4 rounded-lg mt-4 text-left space-y-2">
+            <h4 class="font-bold text-lg text-green-400 border-b border-green-500/30 pb-2">¡Prenda Catalogada Exitosamente! 🎉</h4>
             <p class="text-sm mt-1"><strong>Banda identificada:</strong> ${result.banda_artista || banda || 'Genérica'}</p>
             <p class="text-sm"><strong>Tasación IA:</strong> ${result.precio_sugerido_ia ? 'Q ' + result.precio_sugerido_ia : '<em>Pendiente de revisión manual</em>'}</p>
-            <p class="text-xs text-gray-300 mt-2">La prenda está en revisión por un administrador antes de su publicación en el catálogo.</p>
+            <p class="text-sm"><strong>Autenticidad IA:</strong> ${result.autenticidad_ia || 'Desconocido'} ${result.nivel_confianza_ia ? `(${result.nivel_confianza_ia}%)` : ''}</p>
+            ${result.razonamiento_analisis ? `<p class="text-xs text-green-100/70 bg-green-950 p-2 rounded border border-green-900 mt-2"><em>" ${result.razonamiento_analisis} "</em></p>` : ''}
+            <p class="text-xs text-gray-300 mt-2 pt-2 border-t border-green-500/30">La prenda está en revisión por un administrador antes de su publicación en el catálogo.</p>
           </div>
         `
+      });
+
+      addGoldenSetEvaluation({
+        banda_artista: result.banda_artista || banda,
+        tipo_prenda: tipo,
+        estado_conservacion: estado,
+        origen_adquisicion: origen,
+        evento_origen: evento || "Toque Bar Guatemala",
+        precio_estimado_donante: Number(precio),
+        precio_sugerido_ia: result.precio_sugerido_ia ? Number(result.precio_sugerido_ia) : 0,
+        autenticidad_ia: result.autenticidad_ia || 'Desconocido',
+        nivel_confianza_ia: result.nivel_confianza_ia ? Number(result.nivel_confianza_ia) : 0,
+        razonamiento_analisis: result.razonamiento_analisis || 'Sin razonamiento provisto.',
+        descripcion_marketing: result.descripcion_marketing || '',
+        imagen_url: imageUrls[0]
       });
 
       addProduct({
@@ -134,7 +174,7 @@ export const Ingestion: React.FC = () => {
         ...(user?.role === 'administrador' && adminDonorName.trim() !== '' ? { usuario_donante_nombre: adminDonorName } : {})
       });
 
-      setTimeout(() => navigate('/mis-donaciones'), 4000);
+      
 
     } catch (error) {
       console.error("Error al enviar la donación:", error);
@@ -163,11 +203,19 @@ export const Ingestion: React.FC = () => {
         ...(user?.role === 'administrador' && adminDonorName.trim() !== '' ? { usuario_donante_nombre: adminDonorName } : {})
       });
       
-      setTimeout(() => navigate('/mis-donaciones'), 4000);
+      
     } finally {
       setIsSubmitting(false);
     }
   };
+
+    if (isLoading) {
+    return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sabbath-500"></div></div>;
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -177,19 +225,41 @@ export const Ingestion: React.FC = () => {
       </div>
 
       <div className="bg-sabbath-900 border border-sabbath-800 rounded-2xl p-6 sm:p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {statusMessage?.type === 'success' ? (
+          <div className="space-y-6">
+            <div dangerouslySetInnerHTML={{ __html: statusMessage.html }} />
+            <div className="flex flex-col sm:flex-row gap-4 mt-6">
+              <button
+                type="button"
+                onClick={() => navigate('/mis-donaciones')}
+                className="flex-1 bg-sabbath-600 hover:bg-sabbath-500 text-white font-bold py-3 px-4 rounded-md flex justify-center items-center gap-2 transition-colors border border-sabbath-500 shadow-lg"
+              >
+                <Sparkles className="w-5 h-5" />
+                Ir a Mis Donaciones
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="flex-1 bg-sabbath-900 hover:bg-sabbath-800 text-white border border-sabbath-700 font-bold py-3 px-4 rounded-md flex justify-center items-center gap-2 transition-colors"
+              >
+                Donar otra prenda
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* Multi-Image Upload */}
           <div>
             <div 
-              onClick={handleImageClick}
-              className={`cursor-pointer border-2 border-dashed rounded-xl p-8 text-center flex flex-col items-center justify-center transition-colors relative overflow-hidden ${
+              onClick={isSubmitting ? undefined : handleImageClick}
+              className={`border-2 border-dashed rounded-xl p-8 text-center flex flex-col items-center justify-center transition-colors relative overflow-hidden ${isSubmitting ? 'cursor-wait opacity-60' : 'cursor-pointer'} ${
                 imageFiles.length > 0 ? 'border-sabbath-700 bg-sabbath-950/50 hover:bg-sabbath-900' : 'border-sabbath-700 bg-sabbath-950/50 hover:bg-sabbath-900'
               }`}
             >
               <input 
                 type="file" 
-                ref={fileInputRef}
+                ref={fileInputRef} disabled={isSubmitting}
                 onChange={handleImageChange}
                 accept="image/*"
                 multiple
@@ -224,6 +294,7 @@ export const Ingestion: React.FC = () => {
                     <button 
                       type="button"
                       onClick={(e) => removeImage(idx, e)}
+                      disabled={isSubmitting}
                       className="absolute top-1 right-1 bg-red-600/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-4 h-4" />
@@ -242,7 +313,7 @@ export const Ingestion: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">Banda / Artista <span className="text-red-400">*</span></label>
-              <input
+              <input disabled={isSubmitting}
                 type="text"
                 required
                 value={banda}
@@ -254,7 +325,7 @@ export const Ingestion: React.FC = () => {
             
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">Tipo de Prenda <span className="text-red-400">*</span></label>
-              <select
+              <select disabled={isSubmitting}
                 required
                 value={tipo}
                 onChange={(e) => setTipo(e.target.value)}
@@ -271,7 +342,7 @@ export const Ingestion: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">Talla <span className="text-red-400">*</span></label>
-              <select
+              <select disabled={isSubmitting}
                 required
                 value={talla}
                 onChange={(e) => setTalla(e.target.value)}
@@ -291,7 +362,7 @@ export const Ingestion: React.FC = () => {
             {talla === 'Otra' && (
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">Especificar Talla <span className="text-red-400">*</span></label>
-                <input
+                <input disabled={isSubmitting}
                   type="text"
                   required
                   value={otraTalla}
@@ -304,11 +375,12 @@ export const Ingestion: React.FC = () => {
             
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">Estado de Conservación</label>
-              <select
+              <select disabled={isSubmitting}
                 value={estado}
                 onChange={(e) => setEstado(e.target.value)}
                 className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-4 py-3 text-white focus:outline-none focus:border-sabbath-500"
               >
+                <option value="Nueva con etiqueta">Nueva con etiqueta</option>
                 <option value="Excelente">Excelente (Casi nuevo)</option>
                 <option value="Bueno">Bueno (Uso normal)</option>
                 <option value="Vintage/Desgastado">Vintage / Desgastado</option>
@@ -317,12 +389,13 @@ export const Ingestion: React.FC = () => {
             
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">Origen</label>
-              <select
+              <select disabled={isSubmitting}
                 value={origen}
                 onChange={(e) => setOrigen(e.target.value as AcquisitionOrigin)}
                 className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-4 py-3 text-white focus:outline-none focus:border-sabbath-500"
               >
-                <option value="Tienda oficial en concierto">Tienda oficial en concierto</option>
+                <option value="Tienda Oficial en Linea">Tienda Oficial en Linea</option>
+                <option value="Oficial Local">Oficial Local</option>
                 <option value="Mercadería de tour">Mercadería de tour</option>
                 <option value="Mercado Local">Mercado Local</option>
                 <option value="Colección Personal">Colección Personal</option>
@@ -331,7 +404,7 @@ export const Ingestion: React.FC = () => {
             
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-zinc-300 mb-2">Evento de Origen (Opcional)</label>
-              <input
+              <input disabled={isSubmitting}
                 type="text"
                 value={evento}
                 onChange={(e) => setEvento(e.target.value)}
@@ -342,7 +415,7 @@ export const Ingestion: React.FC = () => {
             
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-zinc-300 mb-2">Precio Estimado (Q) <span className="text-red-400">*</span></label>
-              <input
+              <input disabled={isSubmitting}
                 type="number"
                 min="0"
                 value={precio}
@@ -358,7 +431,7 @@ export const Ingestion: React.FC = () => {
                   [ADMIN] Nombre del donante (Opcional)
                 </label>
                 <p className="text-xs text-zinc-400 mb-3">Si omites este campo, la prenda aparecerá a tu nombre. Úsalo para registrar prendas donadas en eventos físicos por usuarios sin cuenta.</p>
-                <input
+                <input disabled={isSubmitting}
                   type="text"
                   value={adminDonorName}
                   onChange={(e) => setAdminDonorName(e.target.value)}
@@ -396,10 +469,21 @@ export const Ingestion: React.FC = () => {
             </p>
             
             {statusMessage && (
-              <div dangerouslySetInnerHTML={{ __html: statusMessage.html }} />
+              <div className="space-y-4">
+                <div dangerouslySetInnerHTML={{ __html: statusMessage.html }} />
+                <button
+                  type="button"
+                  onClick={() => navigate('/mis-donaciones')}
+                  className="w-full bg-sabbath-600 hover:bg-sabbath-500 text-white font-bold py-3 px-4 rounded-md flex justify-center items-center gap-2 transition-colors border border-sabbath-500 shadow-lg"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  Ir a Mis Donaciones para ver detalles
+                </button>
+              </div>
             )}
           </div>
         </form>
+        )}
       </div>
     </div>
   );

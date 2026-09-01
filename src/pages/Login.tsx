@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, UserPlus, KeyRound, ArrowLeft, Loader2, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -8,6 +8,16 @@ type AuthMode = 'login' | 'register' | 'forgot_password';
 export const Login: React.FC = () => {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('mode') === 'register') {
+      setMode('register');
+    } else {
+      setMode('login');
+    }
+  }, [location]);
   const [mode, setMode] = useState<AuthMode>('login');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +122,21 @@ export const Login: React.FC = () => {
       await loginWithGoogle();
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión con Google.');
+      console.error(err);
+      let errorMessage = err.message || 'Error al iniciar sesión con Google.';
+      
+      // Handle typical iframe/sandbox restrictions for Firebase Auth
+      if (
+        errorMessage.includes('Database is closing') || 
+        errorMessage.includes('hidden') ||
+        errorMessage.includes('popup-closed-by-user') ||
+        errorMessage.includes('cross-origin') ||
+        errorMessage.includes('IndexedDB')
+      ) {
+        errorMessage = '⚠️ El entorno de previsualización bloquea la autenticación de Google. Por favor, abre la aplicación en una pestaña nueva (usando el icono ↗️ en la esquina superior derecha) para poder iniciar sesión con Google.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -1,13 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Skull, Menu, X, LogIn, LogOut, HeartHandshake, CalendarDays, Store, Camera, LayoutDashboard, Shirt, CalendarPlus, Bell, Settings, ChevronDown, ShoppingCart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 
 export const Layout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user, logout, notifications, markNotificationsAsRead, isLoading, cart } = useApp();
   const location = useLocation();
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    const handleFirestoreError = (e: any) => {
+      const errInfo = e.detail;
+      if (errInfo && errInfo.error) {
+        if (errInfo.error.toLowerCase().includes('quota')) {
+          showToast('Límite de Firebase excedido (Quota). Por favor intenta de nuevo mañana.', 'error');
+        } else {
+          // showToast(`Error de base de datos: ${errInfo.error}`, 'error'); // Too noisy for non-quota errors maybe?
+        }
+      }
+    };
+    window.addEventListener('firestore-error', handleFirestoreError);
+    return () => window.removeEventListener('firestore-error', handleFirestoreError);
+  }, [showToast]);
+
+
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMenu = () => setIsMobileMenuOpen(false);
@@ -37,21 +56,9 @@ type NavLink = {
     { name: 'Catálogo', path: '/catalogo', icon: <Store className="w-5 h-5" />, public: true },
     { name: 'Transparencia', path: '/transparencia', icon: <HeartHandshake className="w-5 h-5" />, public: true },
     { name: 'Próximos Toques', path: '/proximos-toques', icon: <CalendarDays className="w-5 h-5" />, public: true },
-    { name: 'Donar Prenda', path: '/donar', icon: <Camera className="w-5 h-5" />, role: 'donante' },
-    { name: 'Mis Donaciones', path: '/mis-donaciones', icon: <Shirt className="w-5 h-5" />, role: 'donante' },
-    { 
-      name: 'Panel Admin', 
-      icon: <LayoutDashboard className="w-5 h-5" />, 
-      role: 'administrador',
-      subLinks: [
-        { name: 'Donar Prenda', path: '/donar' },
-        { name: 'Prendas Pendientes', path: '/admin' },
-        { name: 'Prendas Donadas', path: '/admin-donaciones' },
-        { name: 'Órdenes Pendientes', path: '/admin-ordenes' },
-        { name: 'Panel Usuarios', path: '/admin-usuarios' },
-        { name: 'Gestión Toques', path: '/admin-toques' }
-      ]
-    },
+    { name: 'Donar Prenda', path: user ? '/donar' : '/login?mode=register', icon: <Camera className="w-5 h-5" />, public: true },
+    { name: 'Mis Donaciones', path: '/mis-donaciones', icon: <Shirt className="w-5 h-5" />, requiresAuth: true },
+    { name: 'Panel Admin', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, role: 'administrador' },
     { name: 'Configuración', path: '/settings', icon: <Settings className="w-5 h-5" />, requiresAuth: true },
   ];
 

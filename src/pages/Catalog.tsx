@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { ShoppingCart, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ImageGallery } from '../components/ImageGallery';
 
 export const Catalog: React.FC = () => {
   const { products, updateProductStatus, addToCart, cart } = useApp();
+  const { showToast } = useToast();
   
   const [selectedType, setSelectedType] = useState('Todos');
+  const [selectedBand, setSelectedBand] = useState('Todas');
+  const [selectedSize, setSelectedSize] = useState('Todas');
   const [maxPrice, setMaxPrice] = useState(1000);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -24,16 +29,19 @@ export const Catalog: React.FC = () => {
     return false;
   });
   
+    const uniqueBands = ['Todas', ...Array.from(new Set(publishedProducts.map(p => p.banda_artista)))];
   const filteredProducts = publishedProducts.filter(p => {
     const typeMatch = selectedType === 'Todos' || p.tipo_prenda === selectedType;
+    const bandMatch = selectedBand === 'Todas' || p.banda_artista.toLowerCase().includes(selectedBand.toLowerCase());
+    const sizeMatch = selectedSize === 'Todas' || p.talla === selectedSize;
     const priceMatch = (p.precio_final_aprobado || 0) <= maxPrice;
-    return typeMatch && priceMatch;
+    return typeMatch && bandMatch && sizeMatch && priceMatch;
   });
 
   // Reset to first page when filters or items per page change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedType, maxPrice, itemsPerPage]);
+  }, [selectedType, selectedBand, selectedSize, maxPrice, itemsPerPage]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -44,11 +52,11 @@ export const Catalog: React.FC = () => {
 
   const handleBuy = (product: any) => {
     if (cart.find(p => p.id === product.id)) {
-      alert('Esta prenda ya está en tu carrito.');
+      showToast('Esta prenda ya está en tu carrito.', 'error');
       return;
     }
     addToCart(product);
-    alert('¡Prenda agregada al carrito!');
+    showToast('¡Prenda agregada al carrito!', 'success');
   };
   
   const productTypes = ['Todos', 'Playera', 'Chumpa', 'Sudadero', 'Gorra', 'Accesorio', 'Otros'];
@@ -121,14 +129,19 @@ export const Catalog: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {currentProducts.map((product) => (
+        {currentProducts.map((product) => {
+          const isInCart = cart.some(p => p.id === product.id);
+          const isSold = product.estado_publicacion === 'vendido';
+          const isReserved = product.estado_publicacion === 'reservada';
+          const isDisabled = isSold || isReserved || isInCart;
+          
+          return (
           <div key={product.id} className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden flex flex-col group relative">
             {/* Image & Badges */}
             <div className="relative h-64 overflow-hidden">
-              <img 
-                src={product.imagen_url} 
-                alt={product.banda_artista}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              <ImageGallery 
+                images={product.imagenes_url && product.imagenes_url.length > 0 ? product.imagenes_url : [product.imagen_url]} 
+                alt={product.banda_artista} 
               />
               <div className="absolute top-3 left-3 flex flex-col gap-2">
                 <span className="bg-sabbath-950/80 backdrop-blur-sm text-xs font-bold px-2 py-1 rounded border border-sabbath-700 uppercase tracking-wider text-sabbath-400">
@@ -184,15 +197,17 @@ export const Catalog: React.FC = () => {
               <div className="mt-auto pt-4 border-t border-sabbath-800/50">
                 <button
                   onClick={() => handleBuy(product)}
-                  disabled={product.estado_publicacion === 'vendido' || product.estado_publicacion === 'reservada'}
+                  disabled={isDisabled}
                   className={`w-full py-3 px-4 rounded-md font-bold text-sm flex items-center justify-center space-x-2 transition-colors min-h-[48px] ${
-                    product.estado_publicacion === 'vendido' || product.estado_publicacion === 'reservada'
+                    isSold || isReserved
                       ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                      : 'bg-sabbath-600 hover:bg-sabbath-500 text-white'
+                      : isInCart
+                        ? 'bg-sabbath-800 text-zinc-400 cursor-not-allowed border border-sabbath-700'
+                        : 'bg-sabbath-600 hover:bg-sabbath-500 text-white'
                   }`}
                 >
                   <ShoppingCart className="w-4 h-4" />
-                  <span>{product.estado_publicacion === 'vendido' ? 'Vendido' : product.estado_publicacion === 'reservada' ? 'Reservado' : 'Agregar al carrito'}</span>
+                  <span>{isSold ? 'Vendido' : isReserved ? 'Reservado' : isInCart ? 'En tu carrito' : 'Agregar al carrito'}</span>
                 </button>
                 {product.estado_publicacion !== 'vendido' && product.estado_publicacion !== 'reservada' && (
                   <p className="text-center text-xs text-zinc-500 mt-2">
@@ -202,7 +217,8 @@ export const Catalog: React.FC = () => {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       
       {/* Pagination Controls */}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Clock, CheckCircle2, ShieldCheck, HeartHandshake, Trash2, Filter } from 'lucide-react';
+import { ImageGallery } from '../components/ImageGallery';
 
 export const AdminDonations: React.FC = () => {
   const { products, deleteProduct, user } = useApp();
@@ -57,7 +58,7 @@ export const AdminDonations: React.FC = () => {
         {filteredProducts.map((product) => (
           <div key={product.id} className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden flex flex-col shadow-lg">
             <div className="h-48 relative">
-              <img src={product.imagen_url} alt={product.banda_artista} className="w-full h-full object-cover opacity-80" />
+              <ImageGallery images={product.imagenes_url && product.imagenes_url.length > 0 ? product.imagenes_url : [product.imagen_url]} alt={product.banda_artista} />
               <div className="absolute top-3 right-3">
                 {getStatusBadge(product.estado_publicacion)}
               </div>

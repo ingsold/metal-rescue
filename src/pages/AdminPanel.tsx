@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { ShieldAlert, Check, X, Edit3, Filter, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ImageGallery } from '../components/ImageGallery';
+
 
 export const AdminPanel: React.FC = () => {
   const { products, updateProductStatus } = useApp();
@@ -36,14 +38,17 @@ export const AdminPanel: React.FC = () => {
   // Local state for editing prices and marketing descriptions
   const [edits, setEdits] = useState<Record<string, { price: number, desc: string }>>({});
   
-  const handleEditChange = (id: string, field: 'price' | 'desc', value: any) => {
-    setEdits(prev => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        [field]: value
-      }
-    }));
+  const handleEditChange = (id: string, field: 'price' | 'desc', value: any, initialPrice: number, initialDesc?: string) => {
+    setEdits(prev => {
+      const currentState = prev[id] || { price: initialPrice, desc: initialDesc || 'Clásico de colección para el mosh.' };
+      return {
+        ...prev,
+        [id]: {
+          ...currentState,
+          [field]: value
+        }
+      };
+    });
   };
   
   const getEditState = (id: string, initialPrice: number, initialDesc?: string) => {
@@ -131,17 +136,16 @@ export const AdminPanel: React.FC = () => {
           </select>
         </div>
       )}
-
       <div className="space-y-6">
+
         {currentProducts.map((product) => {
-          const editState = getEditState(product.id, product.precio_sugerido_ia, product.descripcion_marketing);
+          const editState = getEditState(product.id, product.precio_sugerido_ia || 0, product.descripcion_marketing);
           return (
             <div key={product.id} className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden flex flex-col lg:flex-row shadow-2xl">
               <div className="lg:w-1/3 bg-sabbath-950 p-6 flex items-center justify-center">
-                <img 
-                  src={product.imagen_url} 
+                <ImageGallery 
+                  images={product.imagenes_url && product.imagenes_url.length > 0 ? product.imagenes_url : [product.imagen_url]} 
                   alt={product.banda_artista} 
-                  className="max-h-64 object-contain rounded-md"
                 />
               </div>
               <div className="lg:w-2/3 p-6 flex flex-col justify-between">
@@ -150,8 +154,8 @@ export const AdminPanel: React.FC = () => {
                     <div>
                       <h3 className="text-2xl font-bold text-white uppercase tracking-wider">{product.banda_artista}</h3>
                       <p className="text-zinc-400">
-  {product.tipo_prenda} {product.talla ? `(Talla: ${product.talla})` : ''} • {product.estado_conservacion}
-</p>
+                        {product.tipo_prenda} {product.talla ? `(Talla: ${product.talla})` : ''} • {product.estado_conservacion}
+                      </p>
                       <p className="text-sm text-zinc-500">Donante: <span className="text-zinc-300">{product.usuario_donante_nombre}</span></p>
                     </div>
                     <div className="bg-sabbath-950 p-3 rounded-lg border border-sabbath-800/50 min-w-[150px]">
@@ -168,13 +172,14 @@ export const AdminPanel: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="md:col-span-1">
                       <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Precio Final (Q)</label>
                       <input 
                         type="number"
                         value={editState.price}
-                        onChange={(e) => handleEditChange(product.id, 'price', Number(e.target.value))}
+                        onChange={(e) => handleEditChange(product.id, 'price', Number(e.target.value), product.precio_sugerido_ia || 0, product.descripcion_marketing)}
                         className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-3 py-2 text-white text-lg font-bold focus:border-sabbath-500 focus:outline-none"
                       />
                     </div>
@@ -182,17 +187,17 @@ export const AdminPanel: React.FC = () => {
                       <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                         <Edit3 className="w-3 h-3" /> Descripción Marketing
                       </label>
-                      <input 
-                        type="text"
+                      <textarea                         rows={3}
                         value={editState.desc}
-                        onChange={(e) => handleEditChange(product.id, 'desc', e.target.value)}
-                        className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-3 py-2 text-zinc-300 focus:border-sabbath-500 focus:outline-none"
+                        onChange={(e) => handleEditChange(product.id, 'desc', e.target.value, product.precio_sugerido_ia || 0, product.descripcion_marketing)}
+                        className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-3 py-2 text-zinc-300 focus:border-sabbath-500 focus:outline-none resize-none"
                       />
                     </div>
                   </div>
+
                   <div className="flex gap-4 pt-4 border-t border-sabbath-800/50">
                     <button 
-                      onClick={() => handleApprove(product.id, product.precio_sugerido_ia, product.descripcion_marketing)}
+                      onClick={() => handleApprove(product.id, product.precio_sugerido_ia || 0, product.descripcion_marketing)}
                       className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-md font-bold flex items-center justify-center gap-2 transition-colors"
                     >
                       <Check className="w-5 h-5" /> Aprobar y Publicar
@@ -209,6 +214,7 @@ export const AdminPanel: React.FC = () => {
             </div>
           );
         })}
+
         {pendingProducts.length > 0 && currentProducts.length === 0 && (
           <div className="text-center py-20 bg-sabbath-900 border border-sabbath-800 rounded-xl">
             <ShieldAlert className="w-16 h-16 text-zinc-500 mx-auto mb-4 opacity-50" />
@@ -216,7 +222,7 @@ export const AdminPanel: React.FC = () => {
             <p className="text-zinc-500 mt-2">Prueba ajustando los filtros de búsqueda.</p>
           </div>
         )}
-        
+
         {pendingProducts.length === 0 && (
           <div className="text-center py-20 bg-sabbath-900 border border-sabbath-800 rounded-xl">
             <ShieldAlert className="w-16 h-16 text-sabbath-500 mx-auto mb-4 opacity-50" />
@@ -261,6 +267,8 @@ export const AdminPanel: React.FC = () => {
           </button>
         </div>
       )}
+
+      
     </div>
   );
 };

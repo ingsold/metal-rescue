@@ -14,7 +14,7 @@ export type User = {
 
 export type PublicationState = 'borrador_pendiente' | 'aprobado_publicado' | 'rechazado' | 'vendido' | 'reservada';
 
-export type OrderStatus = 'pendiente' | 'lista';
+export type OrderStatus = 'pendiente' | 'lista' | 'cancelada';
 
 export interface Order {
   id: string;
@@ -27,7 +27,7 @@ export interface Order {
   createdAt: string;
 }
 
-export type AcquisitionOrigin = 'Tienda oficial en concierto' | 'Mercadería de tour' | 'Mercado Local' | 'Colección Personal';
+export type AcquisitionOrigin = 'Tienda Oficial en Linea' | 'Mercadería de tour' | 'Mercado Local' | 'Colección Personal' | 'Oficial Local';
 export type AuthenticityStatus = 'Oficial' | 'Bootleg' | 'Desconocido';
 
 export interface Product {
@@ -52,12 +52,23 @@ export interface Product {
   usuario_donante_nombre: string;
 }
 
+export interface Ally {
+  id: string;
+  nombre: string;
+  telefono: string;
+  email: string;
+  descripcion: string;
+  imagen: string;
+  redes_sociales?: string;
+}
+
 export interface ShelterDelivery {
   id: string;
   refugio_nombre: string;
   monto_donado_gtq: number;
   alimento_comprado_kg: number;
   foto_evidencia_url: string;
+  galeria_urls?: string[];
   fecha_entrega: string;
   descripcion_impacto: string;
 }
@@ -78,4 +89,20 @@ export interface AppNotification {
   message: string;
   read: boolean;
   date: string;
+}
+export interface GoldenSetEvaluation {
+  id_muestra?: string;
+  fecha_evaluacion: string;
+  banda_artista: string;
+  tipo_prenda: string;
+  estado_conservacion: string;
+  origen_adquisicion: string;
+  evento_origen: string;
+  precio_estimado_donante: number;
+  precio_sugerido_ia: number;
+  autenticidad_ia: string;
+  nivel_confianza_ia: number;
+  razonamiento_analisis: string;
+  descripcion_marketing: string;
+  imagen_url: string;
 }
