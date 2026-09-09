@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { HeartHandshake, ShieldCheck, Zap } from 'lucide-react';
+import { HeartHandshake, ShieldCheck, Zap, Skull } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product } from '../types';
-import { useEffect, useState } from 'react';
+import metalRescueLogo from '../assets/images/metalrescue_logo_1787032571849.jpg';
 
 export const Home: React.FC = () => {
     const { deliveries } = useApp();
@@ -38,7 +38,7 @@ export const Home: React.FC = () => {
       <section className="relative rounded-2xl overflow-hidden border border-sabbath-800 bg-sabbath-900">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1598387181032-a3103a2db5b3?q=80&w=1200&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
         <div className="relative px-6 py-20 sm:py-32 sm:px-12 lg:px-20 text-center flex flex-col items-center">
-          <img src="/src/assets/images/metalrescue_logo_1787032571849.jpg" alt="MetalRescue Logo" className="w-32 h-32 rounded-full border-4 border-sabbath-600 mb-8 shadow-2xl object-cover" />
+          <img src={metalRescueLogo} alt="MetalRescue Logo" className="w-32 h-32 rounded-full border-4 border-sabbath-600 mb-8 shadow-2xl object-cover" />
           <h1 className="text-4xl sm:text-5xl lg:text-7xl font-display font-bold text-white mb-6 leading-tight max-w-4xl">
             TRANSFORMA TU PASIÓN POR EL METAL EN <span className="text-sabbath-400">AYUDA PARA ANIMALES</span>
           </h1>
