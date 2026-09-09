@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import { ShieldAlert, Users, Package, Calendar, Beaker, CheckSquare, Settings, HeartHandshake, Building2 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
+  const { user } = useApp();
   const adminLinks = [
     { to: "/admin-ordenes", icon: <Package className="w-8 h-8 mb-4 text-blue-400" />, title: "Gestión de Órdenes", desc: "Preparar pedidos de los usuarios" },
     { to: "/admin-donaciones", icon: <Package className="w-8 h-8 mb-4 text-purple-400" />, title: "Mis Prendas Subidas", desc: "Ver prendas que he publicado como admin" },
@@ -11,8 +13,11 @@ export const AdminDashboard: React.FC = () => {
     { to: "/admin-pendientes", icon: <CheckSquare className="w-8 h-8 mb-4 text-sabbath-400" />, title: "Prendas Pendientes", desc: "Aprobar o rechazar donaciones entrantes" },
     { to: "/admin-toques", icon: <Calendar className="w-8 h-8 mb-4 text-red-400" />, title: "Gestión de Toques", desc: "Crear y administrar eventos/conciertos" },
     { to: "/admin-usuarios", icon: <Users className="w-8 h-8 mb-4 text-yellow-400" />, title: "Control de Usuarios", desc: "Administración de roles y estados" },
-    { to: "/admin-golden-set", icon: <Beaker className="w-8 h-8 mb-4 text-green-400" />, title: "Experimento Golden Set", desc: "Gestión y exportación de muestras IA (TFM)" },
   ];
+
+  if (user?.email === 'admin@metalrescue.org') {
+    adminLinks.push({ to: "/admin-golden-set", icon: <Beaker className="w-8 h-8 mb-4 text-green-400" />, title: "Experimento Golden Set", desc: "Gestión y exportación de muestras IA (TFM)" });
+  }
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">

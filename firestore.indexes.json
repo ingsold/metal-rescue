@@ -1,0 +1,73 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado_publicacion", "order": "ASCENDING" },
+        { "fieldPath": "fecha_donacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado_publicacion", "order": "ASCENDING" },
+        { "fieldPath": "fecha_donacion", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipo_prenda", "order": "ASCENDING" },
+        { "fieldPath": "estado_publicacion", "order": "ASCENDING" },
+        { "fieldPath": "fecha_donacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "talla", "order": "ASCENDING" },
+        { "fieldPath": "estado_publicacion", "order": "ASCENDING" },
+        { "fieldPath": "fecha_donacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipo_prenda", "order": "ASCENDING" },
+        { "fieldPath": "talla", "order": "ASCENDING" },
+        { "fieldPath": "estado_publicacion", "order": "ASCENDING" },
+        { "fieldPath": "fecha_donacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "usuario_donante_id", "order": "ASCENDING" },
+        { "fieldPath": "fecha_donacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

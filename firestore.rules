@@ -58,16 +58,18 @@ service cloud.firestore {
                      isOwner(resource.data.usuario_donante_id) || 
                      isAdmin();
       
-      allow create: if isSignedIn() &&
-                       incoming().keys().hasAll(['imagen_url', 'banda_artista', 'tipo_prenda', 'estado_conservacion', 'precio_estimado_donante', 'estado_publicacion', 'fecha_donacion', 'usuario_donante_id', 'usuario_donante_nombre']) &&
-                       incoming().imagen_url is string &&
-                       incoming().banda_artista is string && incoming().banda_artista.size() <= 100 &&
-                       incoming().tipo_prenda is string && incoming().tipo_prenda.size() <= 50 &&
-                       incoming().estado_conservacion is string && incoming().estado_conservacion.size() <= 50 &&
-                       incoming().precio_estimado_donante is number &&
-                       incoming().estado_publicacion == 'borrador_pendiente' &&
+            allow create: if isSignedIn() && 
+                       incoming().keys().hasAll(['imagenes_url', 'banda_artista', 'tipo_prenda', 'estado_conservacion', 'origen_adquisicion', 'precio_estimado_donante', 'estado_publicacion', 'fecha_donacion', 'evento_origen', 'usuario_donante_id', 'usuario_donante_nombre']) && 
+                       incoming().imagenes_url is list && incoming().imagenes_url.size() > 0 &&
+                       incoming().banda_artista is string && incoming().banda_artista.size() <= 100 && 
+                       incoming().tipo_prenda is string && incoming().tipo_prenda.size() <= 50 && 
+                       incoming().estado_conservacion is string && incoming().estado_conservacion.size() <= 50 && 
+                       incoming().origen_adquisicion is string && incoming().origen_adquisicion.size() <= 100 &&
+                       incoming().precio_estimado_donante is number && 
+                       incoming().estado_publicacion == 'borrador_pendiente' && 
                        incoming().fecha_donacion is string && incoming().fecha_donacion.size() <= 100 &&
-                       incoming().usuario_donante_id == request.auth.uid &&
+                       incoming().evento_origen is string && incoming().evento_origen.size() <= 100 &&
+                       incoming().usuario_donante_id == request.auth.uid && 
                        incoming().usuario_donante_nombre is string && incoming().usuario_donante_nombre.size() <= 100;
                        
       // Users can reserve items (buy), admins can approve/update status
@@ -85,13 +87,19 @@ service cloud.firestore {
     match /evaluaciones_golden_set/{evalId} {
       allow read: if isAdmin();
       allow create: if isSignedIn();
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     match /orders/{orderId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isAdmin();
+      allow update: if isAdmin() || (
+        isOwner(resource.data.userId) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'paymentReceiptUrl']) &&
+        incoming().status == 'verificando_pago' &&
+        incoming().paymentReceiptUrl is string
+      );
       allow delete: if isAdmin();
     }
 

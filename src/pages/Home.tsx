@@ -2,12 +2,32 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { HeartHandshake, ShieldCheck, Zap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Product } from '../types';
+import { useEffect, useState } from 'react';
 
 export const Home: React.FC = () => {
-  const { products, deliveries } = useApp();
-
-  // Dynamic calculations based on actual catalog data
-  const soldProducts = products.filter(p => p.estado_publicacion === 'vendido');
+    const { deliveries } = useApp();
+  const [soldProducts, setSoldProducts] = useState<Product[]>([]);
+  
+  useEffect(() => {
+    const fetchSold = async () => {
+      try {
+        const q = query(
+          collection(db, 'products'),
+          where('estado_publicacion', '==', 'vendido'),
+          orderBy('fecha_donacion', 'desc'),
+          limit(4)
+        );
+        const snap = await getDocs(q);
+        setSoldProducts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
+      } catch (e) {
+        console.error("Error fetching sold products", e);
+      }
+    };
+    fetchSold();
+  }, []);
   const totalItemsSold = soldProducts.length;
   const totalRaised = soldProducts.reduce((acc, curr) => acc + (curr.precio_final_aprobado || 0), 0);
   const totalFood = deliveries.reduce((acc, curr) => acc + curr.alimento_comprado_kg, 0);
@@ -23,7 +43,7 @@ export const Home: React.FC = () => {
             TRANSFORMA TU PASIÓN POR EL METAL EN <span className="text-sabbath-400">AYUDA PARA ANIMALES</span>
           </h1>
           <p className="text-lg sm:text-xl text-zinc-300 max-w-2xl mb-10">
-            Dona tus playeras, chumpas o mercadería que ya no usas. Nuestra plataforma las clasifica con inteligencia artificial y el 100% de las ventas va a refugios en Guatemala.
+            Dona tus playeras, chumpas o mercadería que ya no usas. Nuestra plataforma las clasifica con inteligencia artificial y las ventas va a refugios en Guatemala.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <Link to="/donar" className="px-8 py-4 bg-sabbath-600 hover:bg-sabbath-500 text-white rounded-md font-bold text-lg transition-colors flex items-center justify-center min-h-[48px]">
@@ -74,8 +94,8 @@ export const Home: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-sabbath-900 border border-sabbath-700 flex items-center justify-center mb-6">
               <HeartHandshake className="w-8 h-8 text-sabbath-400" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-3">3. 100% para Refugios</h3>
-            <p className="text-zinc-400">Las prendas se venden en el catálogo y los fondos se convierten en alimento y medicina para albergues animales.</p>
+            <h3 className="text-xl font-bold text-white mb-3">3. 95% para Refugios</h3>
+            <p className="text-zinc-400">Las prendas se venden en el catálogo. El 95% de los fondos se convierte en alimento y medicina, y el 5% financia gastos de funcionamiento.</p>
           </div>
         </div>
       </section>

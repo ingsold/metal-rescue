@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { HandHeart, Navigation, Phone, Mail, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ImageGallery } from '../components/ImageGallery';
 
 
 const DeliveryCard: React.FC<{ delivery: any }> = ({ delivery }) => {
-  const [activeImg, setActiveImg] = React.useState(0);
-  
   // Normalize images: always have an array
   const images = delivery.galeria_urls && delivery.galeria_urls.length > 0 
     ? delivery.galeria_urls 
@@ -14,36 +13,11 @@ const DeliveryCard: React.FC<{ delivery: any }> = ({ delivery }) => {
   return (
     <div className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden shadow-lg shadow-sabbath-900/50 flex flex-col">
       <div className="h-56 relative group">
-        <img src={images[activeImg]} alt={`Entrega a ${delivery.refugio_nombre}`} className="w-full h-full object-cover transition-opacity duration-300" />
+        <ImageGallery images={images} alt={`Entrega a ${delivery.refugio_nombre}`} />
         
-        <div className="absolute top-0 right-0 bg-sabbath-600 text-white font-bold px-4 py-2 rounded-bl-xl shadow-md z-10">
+        <div className="absolute top-0 right-0 bg-sabbath-600 text-white font-bold px-4 py-2 rounded-bl-xl shadow-md z-20 pointer-events-none">
           Q{delivery.monto_donado_gtq}
         </div>
-        
-        {images.length > 1 && (
-          <>
-            <button 
-              onClick={() => setActiveImg((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={() => setActiveImg((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-              {images.map((_: any, idx: number) => (
-                <div 
-                  key={idx} 
-                  className={`w-2 h-2 rounded-full transition-colors ${idx === activeImg ? 'bg-sabbath-400' : 'bg-white/50'}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
       </div>
       
       <div className="p-6 flex-1 flex flex-col">

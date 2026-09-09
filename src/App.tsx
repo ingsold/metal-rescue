@@ -21,6 +21,9 @@ import { UpcomingEvents } from './pages/UpcomingEvents';
 import { ManageEvents } from './pages/ManageEvents';
 import { Settings } from './pages/Settings';
 import { Cart } from './pages/Cart';
+import { MyOrders } from './pages/MyOrders';
+import { AdminRoute } from './components/AdminRoute';
+import { GoldenSetRoute } from './components/GoldenSetRoute';
 
 function App() {
   return (
@@ -35,15 +38,17 @@ function App() {
             <Route path="donar" element={<Ingestion />} />
             <Route path="mis-donaciones" element={<MyDonations />} />
             <Route path="cart" element={<Cart />} />
-            <Route path="admin" element={<AdminDashboard />} />
-            <Route path="admin-pendientes" element={<AdminPanel />} />
-            <Route path="admin-golden-set" element={<AdminGoldenSet />} />
-            <Route path="admin-donaciones" element={<AdminDonations />} />
-            <Route path="admin-ordenes" element={<AdminOrders />} />
-            <Route path="admin-usuarios" element={<AdminUsers />} />
-            <Route path="admin-toques" element={<ManageEvents />} />
-            <Route path="admin-entidades" element={<ManageAllies />} />
-            <Route path="admin-entregas" element={<ManageDeliveries />} />
+            <Route path="mis-ordenes" element={<MyOrders />} />
+            {/* Admin Protected Routes */}
+            <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="admin-pendientes" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+            <Route path="admin-golden-set" element={<GoldenSetRoute><AdminGoldenSet /></GoldenSetRoute>} />
+            <Route path="admin-donaciones" element={<AdminRoute><AdminDonations /></AdminRoute>} />
+            <Route path="admin-ordenes" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+            <Route path="admin-usuarios" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+            <Route path="admin-toques" element={<AdminRoute><ManageEvents /></AdminRoute>} />
+            <Route path="admin-entidades" element={<AdminRoute><ManageAllies /></AdminRoute>} />
+            <Route path="admin-entregas" element={<AdminRoute><ManageDeliveries /></AdminRoute>} />
             <Route path="transparencia" element={<Transparency />} />
             <Route path="proximos-toques" element={<UpcomingEvents />} />
             <Route path="settings" element={<Settings />} />

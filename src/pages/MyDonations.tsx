@@ -1,22 +1,52 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Clock, CheckCircle2, ShieldCheck, HeartHandshake, Trash2 } from 'lucide-react';
 import { ImageGallery } from '../components/ImageGallery';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Product } from '../types';
 
 export const MyDonations: React.FC = () => {
-  const { products, user, deleteProduct, isLoading } = useApp();
-  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const { user, deleteProduct, isLoading: isAuthLoading } = useApp();
   const navigate = useNavigate();
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Todos');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/login?mode=register');
+    if (!isAuthLoading && !user) {
+      navigate('/login');
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isAuthLoading, navigate]);
 
+  useEffect(() => {
+    const fetchUserProducts = async () => {
+      if (!user) return;
+      setIsLoadingProducts(true);
+      try {
+        const q = query(
+          collection(db, 'products'),
+          where('usuario_donante_id', '==', user.id),
+          orderBy('fecha_donacion', 'desc')
+        );
+        const snap = await getDocs(q);
+        setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
+      } catch (e) {
+        console.error("Error fetching user products", e);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    fetchUserProducts();
+  }, [user]);
 
-  const userProducts = products.filter(p => p.usuario_donante_id === user?.id);
+  const userProducts = products;
+
 
   const getStatusBadge = (product: any) => {
     const status = product.estado_publicacion;
@@ -43,7 +73,7 @@ export const MyDonations: React.FC = () => {
   };
 
 
-  if (isLoading) {
+  if (isAuthLoading || isLoadingProducts) {
     return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sabbath-500"></div></div>;
   }
 
@@ -79,7 +109,7 @@ export const MyDonations: React.FC = () => {
           {userProducts.map((product) => (
             <div key={product.id} className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden flex flex-col">
               <div className="h-48 relative">
-                <ImageGallery images={product.imagenes_url && product.imagenes_url.length > 0 ? product.imagenes_url : [product.imagen_url]} alt={product.banda_artista} />
+                <ImageGallery images={product.imagenes_url || []} alt={product.banda_artista} />
                 <div className="absolute top-3 right-3">
                   {getStatusBadge(product)}
                 </div>

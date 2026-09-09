@@ -1,50 +1,43 @@
-import re
-
 with open('src/pages/Catalog.tsx', 'r') as f:
     content = f.read()
 
-old_button = """                <button
-                  onClick={() => handleBuy(product)}
-                  disabled={product.estado_publicacion === 'vendido' || product.estado_publicacion === 'reservada'}
-                  className={`w-full py-3 px-4 rounded-md font-bold text-sm flex items-center justify-center space-x-2 transition-colors min-h-[48px] ${
-                    product.estado_publicacion === 'vendido' || product.estado_publicacion === 'reservada'
-                      ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                      : 'bg-sabbath-600 hover:bg-sabbath-500 text-white'
-                  }`}
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>{product.estado_publicacion === 'vendido' ? 'Vendido' : product.estado_publicacion === 'reservada' ? 'Reservado' : 'Agregar al carrito'}</span>
-                </button>"""
+end_html = """      <div className="flex justify-center items-center space-x-4 mt-8">
+        <button
+          onClick={handlePrevPage}
+          disabled={currentPage === 1 || isLoading}
+          className="p-2 bg-sabbath-900 border border-sabbath-800 rounded-md text-zinc-400 hover:text-white hover:border-sabbath-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        
+        <span className="text-zinc-300 font-medium">
+          Página {currentPage}
+        </span>
+        
+        <button
+          onClick={handleNextPage}
+          disabled={!hasMore || isLoading}
+          className="p-2 bg-sabbath-900 border border-sabbath-800 rounded-md text-zinc-400 hover:text-white hover:border-sabbath-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
 
-new_button = """                <button
-                  onClick={() => handleBuy(product)}
-                  disabled={isDisabled}
-                  className={`w-full py-3 px-4 rounded-md font-bold text-sm flex items-center justify-center space-x-2 transition-colors min-h-[48px] ${
-                    isSold || isReserved
-                      ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                      : isInCart
-                        ? 'bg-sabbath-800 text-zinc-400 cursor-not-allowed border border-sabbath-700'
-                        : 'bg-sabbath-600 hover:bg-sabbath-500 text-white'
-                  }`}
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>{isSold ? 'Vendido' : isReserved ? 'Reservado' : isInCart ? 'En tu carrito' : 'Agregar al carrito'}</span>
-                </button>"""
+      {filteredProducts.length === 0 && (
+        <div className="text-center py-20 bg-sabbath-900 border border-sabbath-800 rounded-xl">
+          <p className="text-zinc-400 text-lg">No hay prendas que coincidan con estos filtros.</p>
+        </div>
+      )}
+    </div>
+  );
+};"""
 
-content = content.replace(old_button, new_button)
-
-old_end = """              </div>
-            </div>
-          </div>
-        ))}"""
-
-new_end = """              </div>
-            </div>
-          </div>
-          );
-        })}"""
-
-content = content.replace(old_end, new_end)
+start_idx = content.find("      {/* Pagination Controls */}")
+if start_idx != -1:
+    content = content[:start_idx] + end_html
+else:
+    print("Start not found")
 
 with open('src/pages/Catalog.tsx', 'w') as f:
     f.write(content)
+

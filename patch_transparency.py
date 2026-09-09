@@ -1,123 +1,87 @@
 import re
 
-with open('src/pages/Transparency.tsx', 'r') as f:
+with open('src/pages/Home.tsx', 'r') as f:
     content = f.read()
 
-new_content = """import React from 'react';
-import { useApp } from '../context/AppContext';
-import { HandHeart, Navigation, Phone, Mail, Building2 } from 'lucide-react';
+content = content.replace(
+    '<h3 className="text-xl font-bold text-white mb-3">3. 100% para Refugios</h3>',
+    '<h3 className="text-xl font-bold text-white mb-3">3. 95% para Refugios</h3>'
+)
+content = content.replace(
+    '<p className="text-zinc-400">Las prendas se venden en el catálogo y los fondos se convierten en alimento y medicina para albergues animales.</p>',
+    '<p className="text-zinc-400">Las prendas se venden en el catálogo. El 95% de los fondos se convierte en alimento y medicina, y el 5% financia gastos de funcionamiento.</p>'
+)
 
-export const Transparency: React.FC = () => {
-  const { deliveries } = useApp();
+with open('src/pages/Home.tsx', 'w') as f:
+    f.write(content)
 
-  const aliados = [
-    {
-      id: 1,
-      nombre: "Unidad de Bienestar Animal de la MuniGuate",
-      telefono: "4479 7830",
-      email: "bienestaranimal@muniguate.com",
-      descripcion: "Entidad municipal dedicada a la protección, rescate y bienestar de los animales en la Ciudad de Guatemala.",
-      imagen: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=800"
-    }
-  ];
+with open('src/pages/Ingestion.tsx', 'r') as f:
+    content = f.read()
 
-  return (
-    <div className="space-y-12">
-      <div className="border-b border-sabbath-800 pb-4">
-        <h1 className="text-3xl font-display font-bold text-white mb-2">TRANSPARENCIA E IMPACTO</h1>
-        <p className="text-zinc-400">Conoce a quiénes ayudamos y la evidencia de cada centavo convertido en ayuda animal.</p>
-      </div>
+old_str = """                placeholder="¿Cuánto crees que vale? (Q)"
+                className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-4 py-3 text-white focus:outline-none focus:border-sabbath-500"
+              />
+            </div>"""
 
-      {/* Aliados Section */}
-      <section>
-        <div className="flex items-center gap-2 mb-6">
-          <Building2 className="w-6 h-6 text-sabbath-400" />
-          <h2 className="text-2xl font-bold text-white">Entidades Apoyadas</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {aliados.map((aliado) => (
-            <div key={aliado.id} className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden shadow-lg flex flex-col">
-              <div className="h-48 relative overflow-hidden bg-zinc-800">
-                <img src={aliado.imagen} alt={aliado.nombre} className="w-full h-full object-cover opacity-80" />
-                <div className="absolute inset-0 bg-gradient-to-t from-sabbath-900 to-transparent"></div>
+new_str = """                placeholder="¿Cuánto crees que vale? (Q)"
+                className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-4 py-3 text-white focus:outline-none focus:border-sabbath-500"
+              />
+              <p className="text-xs text-zinc-500 mt-2">Nota de transparencia: Al venderse esta prenda, se deducirá un 5% del precio final para cubrir gastos de funcionamiento. El 95% íntegro será destinado a los refugios.</p>
+            </div>"""
+
+content = content.replace(old_str, new_str)
+
+with open('src/pages/Ingestion.tsx', 'w') as f:
+    f.write(content)
+
+with open('src/pages/Cart.tsx', 'r') as f:
+    content = f.read()
+
+old_str = """              <h3 className="text-xl font-bold text-white mb-4 border-b border-sabbath-800 pb-4">Resumen de Orden</h3>
+              <div className="flex justify-between items-center mb-6 text-lg">
+                <span className="text-zinc-400">Total a donar:</span>
+                <span className="font-display font-bold text-2xl text-sabbath-400">Q{total}</span>
+              </div>"""
+
+new_str = """              <h3 className="text-xl font-bold text-white mb-4 border-b border-sabbath-800 pb-4">Resumen de Orden</h3>
+              <div className="space-y-2 mb-4 text-sm">
+                <div className="flex justify-between text-zinc-400">
+                  <span>Donación a Refugios (95%):</span>
+                  <span>Q{(total * 0.95).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-zinc-500">
+                  <span>Gastos de funcionamiento (5%):</span>
+                  <span>Q{(total * 0.05).toFixed(2)}</span>
+                </div>
               </div>
-              
-              <div className="p-6 flex-1 flex flex-col relative -mt-12">
-                <div className="bg-sabbath-950 border border-sabbath-800 rounded-xl p-4 shadow-xl z-10 flex-1 flex flex-col">
-                  <h3 className="text-xl font-bold text-white mb-2 leading-tight">{aliado.nombre}</h3>
-                  <p className="text-sm text-zinc-400 mb-6 flex-1">{aliado.descripcion}</p>
-                  
-                  <div className="space-y-3 mt-auto">
-                    <a href={`tel:${aliado.telefono}`} className="flex items-center gap-3 text-sm text-zinc-300 hover:text-sabbath-400 transition-colors">
-                      <div className="bg-sabbath-900 p-2 rounded-lg">
-                        <Phone className="w-4 h-4" />
+              <div className="flex justify-between items-center mb-6 text-lg border-t border-sabbath-800 pt-4">
+                <span className="text-zinc-300 font-bold">Total a transferir:</span>
+                <span className="font-display font-bold text-2xl text-sabbath-400">Q{total}</span>
+              </div>"""
+
+content = content.replace(old_str, new_str)
+
+with open('src/pages/Cart.tsx', 'w') as f:
+    f.write(content)
+
+with open('src/pages/AdminOrders.tsx', 'r') as f:
+    content = f.read()
+
+old_str = """                    <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-2 flex justify-between">
+                      <span>Prendas ({order.items.length})</span>
+                      <span className="text-sabbath-400">Total: Q{order.total}</span>
+                    </h3>"""
+
+new_str = """                    <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-2 flex justify-between items-end">
+                      <span>Prendas ({order.items.length})</span>
+                      <div className="text-right flex flex-col">
+                        <span className="text-sabbath-400 block text-base">Recibido: Q{order.total}</span>
+                        <span className="text-xs text-zinc-500 font-normal mt-1 normal-case">Gastos (5%): Q{(order.total * 0.05).toFixed(2)} | Donación (95%): Q{(order.total * 0.95).toFixed(2)}</span>
                       </div>
-                      <span className="font-medium">{aliado.telefono}</span>
-                    </a>
-                    
-                    <a href={`mailto:${aliado.email}`} className="flex items-center gap-3 text-sm text-zinc-300 hover:text-sabbath-400 transition-colors break-all">
-                      <div className="bg-sabbath-900 p-2 rounded-lg">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <span className="font-medium">{aliado.email}</span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+                    </h3>"""
 
-      {/* Entregas Section */}
-      <section>
-        <div className="flex items-center gap-2 mb-6">
-          <HandHeart className="w-6 h-6 text-sabbath-400" />
-          <h2 className="text-2xl font-bold text-white">Registro de Entregas</h2>
-        </div>
-        
-        {deliveries.length === 0 ? (
-          <div className="bg-sabbath-900/50 border border-sabbath-800 border-dashed rounded-xl p-12 text-center text-zinc-500">
-            Aún no hay entregas registradas en el sistema.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {deliveries.map((delivery) => (
-              <div key={delivery.id} className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden shadow-lg shadow-sabbath-900/50">
-                <div className="h-56 relative">
-                  <img src={delivery.foto_evidencia_url} alt={`Entrega a ${delivery.refugio_nombre}`} className="w-full h-full object-cover" />
-                  <div className="absolute top-0 right-0 bg-sabbath-600 text-white font-bold px-4 py-2 rounded-bl-xl shadow-md">
-                    Q{delivery.monto_donado_gtq}
-                  </div>
-                </div>
-                
-                <div className="p-6">
-                  <div className="flex items-center space-x-2 text-sabbath-400 mb-3">
-                    <HandHeart className="w-5 h-5" />
-                    <h3 className="text-xl font-bold text-white">{delivery.refugio_nombre}</h3>
-                  </div>
-                  <p className="text-zinc-300 text-sm mb-4 leading-relaxed">
-                    "{delivery.descripcion_impacto}"
-                  </p>
-                  
-                  <div className="bg-sabbath-950 rounded-lg p-3 border border-sabbath-800/50 flex justify-between items-center text-sm">
-                    <span className="text-zinc-400">Total Entregado:</span>
-                    <span className="font-bold text-white bg-sabbath-800 px-3 py-1 rounded-md">{delivery.alimento_comprado_kg} kg de alimento</span>
-                  </div>
-                  
-                  <div className="mt-4 text-xs text-zinc-500 text-right">
-                    Fecha: {new Date(delivery.fecha_entrega).toLocaleDateString('es-GT')}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
-  );
-};
-"""
+content = content.replace(old_str, new_str)
 
-with open('src/pages/Transparency.tsx', 'w') as f:
-    f.write(new_content)
+with open('src/pages/AdminOrders.tsx', 'w') as f:
+    f.write(content)
+

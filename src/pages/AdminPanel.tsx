@@ -3,37 +3,76 @@ import { useApp } from '../context/AppContext';
 import { ShieldAlert, Check, X, Edit3, Filter, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ImageGallery } from '../components/ImageGallery';
+import { collection, query, where, orderBy, getDocs, limit, startAfter, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Product } from '../types';
 
 
 export const AdminPanel: React.FC = () => {
-  const { products, updateProductStatus } = useApp();
+  const { updateProductStatus } = useApp();
   
-  const pendingProducts = products.filter(p => p.estado_publicacion === 'borrador_pendiente');
-  
+  const [pendingProducts, setPendingProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+
   // Filtering and Pagination State
   const [selectedType, setSelectedType] = useState('Todos');
   const [maxPrice, setMaxPrice] = useState(5000);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchPending = async (isNext: boolean = false) => {
+    setIsLoading(true);
+    try {
+      let constraints: any[] = [
+        where('estado_publicacion', '==', 'borrador_pendiente'),
+        orderBy('fecha_donacion', 'asc'), // Older first for admin
+        limit(itemsPerPage)
+      ];
+
+      if (isNext && lastVisible) {
+        constraints.push(startAfter(lastVisible));
+      }
+
+      const q = query(collection(db, 'products'), ...constraints);
+      const snap = await getDocs(q);
+      
+      const prods = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+      setPendingProducts(prods);
+      
+      if (snap.docs.length > 0) {
+        setLastVisible(snap.docs[snap.docs.length - 1]);
+      }
+      setHasMore(snap.docs.length === itemsPerPage);
+    } catch(e) {
+      console.error("Error fetching pending products", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPending(false);
+  }, [itemsPerPage]);
+
+  const handleNextPage = () => {
+    setCurrentPage(p => p + 1);
+    fetchPending(true);
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage(1);
+    setLastVisible(null);
+    fetchPending(false);
+  };
+
 
   const productTypes = ['Todos', 'Playera', 'Chumpa', 'Sudadero', 'Gorra', 'Accesorio', 'Otros'];
   const perPageOptions = [5, 10, 20];
   
-  const filteredProducts = pendingProducts.filter(p => {
-    const typeMatch = selectedType === 'Todos' || p.tipo_prenda === selectedType;
-    const priceMatch = (p.precio_estimado_donante || 0) <= maxPrice;
-    return typeMatch && priceMatch;
-  }).sort((a, b) => new Date(b.fecha_donacion).getTime() - new Date(a.fecha_donacion).getTime());
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedType, maxPrice, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
-  const currentProducts = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const filteredProducts = pendingProducts;
+  const currentProducts = pendingProducts;
 
   // Local state for editing prices and marketing descriptions
   const [edits, setEdits] = useState<Record<string, { price: number, desc: string }>>({});
@@ -71,13 +110,15 @@ export const AdminPanel: React.FC = () => {
           <h1 className="text-3xl font-display font-bold text-white mb-2">PRENDAS PENDIENTES</h1>
           <p className="text-zinc-400">Audita y aprueba prendas para el catálogo.</p>
         </div>
-        <Link 
-          to="/donar"
-          className="flex items-center gap-2 bg-sabbath-600 hover:bg-sabbath-500 text-white px-5 py-3 rounded-md font-bold transition-colors"
-        >
-          <PlusCircle className="w-5 h-5" />
-          <span>Donar Prenda (Admin)</span>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Link 
+            to="/donar"
+            className="flex items-center justify-center gap-2 bg-sabbath-600 hover:bg-sabbath-500 text-white px-5 py-3 rounded-md font-bold transition-colors"
+          >
+            <PlusCircle className="w-5 h-5" />
+            <span>Donar Prenda (Admin)</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -144,7 +185,7 @@ export const AdminPanel: React.FC = () => {
             <div key={product.id} className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden flex flex-col lg:flex-row shadow-2xl">
               <div className="lg:w-1/3 bg-sabbath-950 p-6 flex items-center justify-center">
                 <ImageGallery 
-                  images={product.imagenes_url && product.imagenes_url.length > 0 ? product.imagenes_url : [product.imagen_url]} 
+                  images={product.imagenes_url || []} 
                   alt={product.banda_artista} 
                 />
               </div>
@@ -232,43 +273,27 @@ export const AdminPanel: React.FC = () => {
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center space-x-4 mt-8">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="p-2 bg-sabbath-900 border border-sabbath-800 rounded-md text-zinc-400 hover:text-white hover:border-sabbath-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          
-          <div className="flex items-center space-x-2">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-10 h-10 rounded-md font-bold text-sm transition-colors ${
-                  currentPage === page
-                    ? 'bg-sabbath-600 text-white border border-sabbath-500'
-                    : 'bg-sabbath-900 text-zinc-400 border border-sabbath-800 hover:border-sabbath-500 hover:text-white'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="p-2 bg-sabbath-900 border border-sabbath-800 rounded-md text-zinc-400 hover:text-white hover:border-sabbath-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      )}
-
-      
+            <div className="flex justify-center items-center space-x-4 mt-8">
+        <button
+          onClick={handlePrevPage}
+          disabled={currentPage === 1 || isLoading}
+          className="p-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        
+        <span className="text-zinc-300 font-medium">
+          Página {currentPage}
+        </span>
+        
+        <button
+          onClick={handleNextPage}
+          disabled={!hasMore || isLoading}
+          className="p-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
     </div>
   );
 };

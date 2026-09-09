@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Skull, Menu, X, LogIn, LogOut, HeartHandshake, CalendarDays, Store, Camera, LayoutDashboard, Shirt, CalendarPlus, Bell, Settings, ChevronDown, ShoppingCart } from 'lucide-react';
+import { Skull, Menu, X, LogIn, LogOut, HeartHandshake, CalendarDays, Store, Camera, LayoutDashboard, Shirt, CalendarPlus, Bell, Settings, ChevronDown, ShoppingCart, Package } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 
@@ -58,6 +58,7 @@ type NavLink = {
     { name: 'Próximos Toques', path: '/proximos-toques', icon: <CalendarDays className="w-5 h-5" />, public: true },
     { name: 'Donar Prenda', path: user ? '/donar' : '/login?mode=register', icon: <Camera className="w-5 h-5" />, public: true },
     { name: 'Mis Donaciones', path: '/mis-donaciones', icon: <Shirt className="w-5 h-5" />, requiresAuth: true },
+    { name: 'Mis Órdenes', path: '/mis-ordenes', icon: <Package className="w-5 h-5" />, requiresAuth: true },
     { name: 'Panel Admin', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, role: 'administrador' },
     { name: 'Configuración', path: '/settings', icon: <Settings className="w-5 h-5" />, requiresAuth: true },
   ];

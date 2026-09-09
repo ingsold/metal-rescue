@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { GoldenSetEvaluation, Product, ShelterDelivery, Event, User, AppNotification, AuthenticityStatus, Order, Ally } from '../types';
+import { GoldenSetEvaluation, Product, ShelterDelivery, Event, User, AppNotification, AuthenticityStatus, Order, Ally, OrderStatus } from '../types';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, writeBatch, deleteField } from 'firebase/firestore';
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
@@ -15,8 +15,7 @@ import {
 
 interface AppState {
   user: User | null;
-  products: Product[];
-  deliveries: ShelterDelivery[];
+deliveries: ShelterDelivery[];
   allies: Ally[];
   events: Event[];
   notifications: AppNotification[];
@@ -41,9 +40,9 @@ interface AppState {
   
   // App Methods
   addGoldenSetEvaluation: (evalData: Omit<GoldenSetEvaluation, "id_muestra" | "fecha_evaluacion">) => Promise<void>;
-  addProduct: (product: Omit<Product, 'id' | 'estado_publicacion' | 'fecha_donacion' | 'usuario_donante_id' | 'usuario_donante_nombre'> & { usuario_donante_id?: string, usuario_donante_nombre?: string }) => Promise<void>;
+  addProduct: (product: Omit<Product, 'id' | 'estado_publicacion' | 'fecha_donacion' | 'usuario_donante_id' | 'usuario_donante_nombre'> & { usuario_donante_id?: string, usuario_donante_nombre?: string }) => Promise<string>;
   updateProductStatus: (id: string, status: Product['estado_publicacion'], finalPrice?: number, marketingDesc?: string) => Promise<void>;
-  deleteProduct: (id: string) => Promise<void>;
+deleteProduct: (id: string) => Promise<void>;
   addEvent: (event: Omit<Event, 'id' | 'estado'>) => Promise<void>;
   editEvent: (id: string, updatedEvent: Partial<Event>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -66,7 +65,8 @@ interface AppState {
   clearCart: () => void;
   createOrder: (userId: string, userEmail: string, userName: string) => Promise<void>;
   fetchOrders: () => Promise<void>;
-  updateOrderStatus: (orderId: string, status: 'lista' | 'cancelada') => Promise<void>;
+  updateOrderStatus: (orderId: string, status: OrderStatus, paymentReceiptUrl?: string) => Promise<void>;
+  submitPaymentReceipt: (orderId: string, receiptUrl: string) => Promise<void>;
   
   isLoading: boolean;
 }
@@ -75,8 +75,7 @@ const AppContext = createContext<AppState | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [deliveries, setDeliveries] = useState<ShelterDelivery[]>([]);
+const [deliveries, setDeliveries] = useState<ShelterDelivery[]>([]);
   const [allies, setAllies] = useState<Ally[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -144,51 +143,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   // Products Listener (Separated by role for Security Rules)
-  useEffect(() => {
-    if (isLoading) return;
-    
-    const unsubs: (() => void)[] = [];
-
-    if (user?.role === 'administrador') {
-      unsubs.push(
-        onSnapshot(collection(db, 'products'), (snapshot) => {
-          setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
-        }, (err) => handleFirestoreError(err, OperationType.GET, 'products'))
-      );
-    } else {
-      let publicProducts: Product[] = [];
-      let myProducts: Product[] = [];
-      
-      const updateCombined = () => {
-        const map = new Map();
-        publicProducts.forEach(p => map.set(p.id, p));
-        myProducts.forEach(p => map.set(p.id, p));
-        setProducts(Array.from(map.values()));
-      };
-
-      const publicQ = query(collection(db, 'products'), where('estado_publicacion', 'in', ['aprobado_publicado', 'vendido', 'reservada']));
-      unsubs.push(
-        onSnapshot(publicQ, (snapshot) => {
-          publicProducts = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
-          updateCombined();
-        }, (err) => handleFirestoreError(err, OperationType.GET, 'products'))
-      );
-
-      if (user) {
-        const myQ = query(collection(db, 'products'), where('usuario_donante_id', '==', user.id));
-        unsubs.push(
-          onSnapshot(myQ, (snapshot) => {
-            myProducts = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
-            updateCombined();
-          }, (err) => handleFirestoreError(err, OperationType.GET, 'products'))
-        );
-      }
-    }
-
-    return () => unsubs.forEach(unsub => unsub());
-  }, [user, isLoading]);
-
-  // Notifications Listener
   useEffect(() => {
     if (!user) {
       setNotifications([]);
@@ -385,20 +339,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const id = `p_${Date.now()}`;
     try {
       await setDoc(doc(db, 'products', id), newProduct);
+      return id;
     } catch (e) {
       handleFirestoreError(e, OperationType.CREATE, 'products');
+      throw e;
     }
   };
 
+  
   const updateProductStatus = async (id: string, status: Product['estado_publicacion'], finalPrice?: number, marketingDesc?: string) => {
     try {
-      const product = products.find(p => p.id === id);
-      if (!product) return;
+      const productRef = doc(db, 'products', id);
+      const productSnap = await getDoc(productRef);
+      if (!productSnap.exists()) return;
+      const product = productSnap.data() as Product;
+
       const updates: any = { estado_publicacion: status };
       if (finalPrice !== undefined) updates.precio_final_aprobado = finalPrice;
       if (marketingDesc !== undefined) updates.descripcion_marketing = marketingDesc;
       if (status === 'vendido') updates.fecha_venta = new Date().toISOString();
-      await updateDoc(doc(db, 'products', id), updates);
+
+      await updateDoc(productRef, updates);
+
+      if (finalPrice !== undefined) {
+        try {
+          const evalQuery = query(collection(db, 'evaluaciones_golden_set'), where('producto_id', '==', id));
+          const evalDocs = await getDocs(evalQuery);
+          if (!evalDocs.empty) {
+            await updateDoc(evalDocs.docs[0].ref, { precio_final_aprobado: finalPrice });
+          }
+        } catch (err) {
+          console.error("Error updating Golden Set final price", err);
+        }
+      }
+
       if (status === 'vendido' && product.estado_publicacion !== 'vendido') {
         const notifId = `n_${Date.now()}`;
         const newNotif: Omit<AppNotification, 'id'> = {
@@ -560,21 +534,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const fetchOrders = async () => {
-    if (user?.role !== 'administrador') return;
+    if (!user) return;
     try {
-      const snapshot = await getDocs(collection(db, 'orders'));
+      let q: any = collection(db, 'orders');
+      if (user.role !== 'administrador') {
+        q = query(q, where('userId', '==', user.id));
+      }
+      const snapshot = await getDocs(q);
       setOrders(snapshot.docs.map(d => d.data() as Order).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (error) {
       console.error("Fetch orders failed", error);
     }
   };
 
-  const updateOrderStatus = async (orderId: string, status: 'lista' | 'cancelada') => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus, paymentReceiptUrl?: string) => {
     if (user?.role !== 'administrador') {
       throw new Error('No tienes permisos de administrador.');
     }
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status });
+      const updateData: any = { status };
+      if (paymentReceiptUrl) {
+        updateData.paymentReceiptUrl = paymentReceiptUrl;
+      }
+      await updateDoc(doc(db, 'orders', orderId), updateData);
       
       const order = orders.find(o => o.id === orderId);
       if (order) {
@@ -589,23 +571,39 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       }
       
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updateData } : o));
     } catch (error: any) {
       console.error("Update order status failed", error);
       throw error;
     }
   };
 
+  const submitPaymentReceipt = async (orderId: string, receiptUrl: string) => {
+    if (!user) {
+      throw new Error('Debes iniciar sesión');
+    }
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { 
+        status: 'verificando_pago',
+        paymentReceiptUrl: receiptUrl
+      });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'verificando_pago', paymentReceiptUrl: receiptUrl } : o));
+    } catch (error) {
+      console.error("Error al subir boleta:", error);
+      throw error;
+    }
+  };
+
   return (
     <AppContext.Provider value={{ 
-      user, products, deliveries, events, notifications, allUsers, cart, orders, allies,
+      user, deliveries, events, notifications, allUsers, cart, orders, allies,
       loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword, logout,
       updateProfile, fetchAllUsers, updateUserStatus, updateUserRole,
       addGoldenSetEvaluation,
       addProduct, updateProductStatus, deleteProduct, addEvent, editEvent, deleteEvent, cancelEvent,
       addDelivery, editDelivery, deleteDelivery,
       addAlly, editAlly, deleteAlly, markNotificationsAsRead, 
-      addToCart, removeFromCart, clearCart, createOrder, fetchOrders, updateOrderStatus,
+      addToCart, removeFromCart, clearCart, createOrder, fetchOrders, updateOrderStatus, submitPaymentReceipt,
       isLoading 
     }}>
       {children}

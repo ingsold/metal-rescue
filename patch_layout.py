@@ -3,29 +3,19 @@ import re
 with open('src/components/Layout.tsx', 'r') as f:
     content = f.read()
 
-# Add useEffect to layout
-content = content.replace("import React, { useState } from 'react';", "import React, { useState, useEffect } from 'react';")
+content = content.replace("import { Menu, X, Skull, Store, Camera, LayoutDashboard, LogOut, Settings, Bell, Info, Mail, HeartHandshake, CalendarDays, Shirt } from 'lucide-react';", "import { Menu, X, Skull, Store, Camera, LayoutDashboard, LogOut, Settings, Bell, Info, Mail, HeartHandshake, CalendarDays, Shirt, Package } from 'lucide-react';")
 
-hook = """  const { showToast } = useToast();
+old_links = """    { name: 'Donar Prenda', path: user ? '/donar' : '/login?mode=register', icon: <Camera className="w-5 h-5" />, public: true },
+    { name: 'Mis Donaciones', path: '/mis-donaciones', icon: <Shirt className="w-5 h-5" />, requiresAuth: true },
+    { name: 'Panel Admin', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, role: 'administrador' },"""
 
-  useEffect(() => {
-    const handleFirestoreError = (e: any) => {
-      const errInfo = e.detail;
-      if (errInfo && errInfo.error) {
-        if (errInfo.error.toLowerCase().includes('quota')) {
-          showToast('Límite de Firebase excedido (Quota). Por favor intenta de nuevo mañana.', 'error');
-        } else {
-          // showToast(`Error de base de datos: ${errInfo.error}`, 'error'); // Too noisy for non-quota errors maybe?
-        }
-      }
-    };
-    window.addEventListener('firestore-error', handleFirestoreError);
-    return () => window.removeEventListener('firestore-error', handleFirestoreError);
-  }, [showToast]);
+new_links = """    { name: 'Donar Prenda', path: user ? '/donar' : '/login?mode=register', icon: <Camera className="w-5 h-5" />, public: true },
+    { name: 'Mis Donaciones', path: '/mis-donaciones', icon: <Shirt className="w-5 h-5" />, requiresAuth: true },
+    { name: 'Mis Órdenes', path: '/mis-ordenes', icon: <Package className="w-5 h-5" />, requiresAuth: true },
+    { name: 'Panel Admin', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, role: 'administrador' },"""
 
-"""
-
-content = content.replace("  const location = useLocation();", "  const location = useLocation();\n" + hook)
+content = content.replace(old_links, new_links)
 
 with open('src/components/Layout.tsx', 'w') as f:
     f.write(content)
+

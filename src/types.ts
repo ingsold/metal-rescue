@@ -14,7 +14,7 @@ export type User = {
 
 export type PublicationState = 'borrador_pendiente' | 'aprobado_publicado' | 'rechazado' | 'vendido' | 'reservada';
 
-export type OrderStatus = 'pendiente' | 'lista' | 'cancelada';
+export type OrderStatus = 'pendiente' | 'verificando_pago' | 'lista' | 'cancelada';
 
 export interface Order {
   id: string;
@@ -25,6 +25,7 @@ export interface Order {
   total: number;
   status: OrderStatus;
   createdAt: string;
+  paymentReceiptUrl?: string;
 }
 
 export type AcquisitionOrigin = 'Tienda Oficial en Linea' | 'Mercadería de tour' | 'Mercado Local' | 'Colección Personal' | 'Oficial Local';
@@ -32,8 +33,7 @@ export type AuthenticityStatus = 'Oficial' | 'Bootleg' | 'Desconocido';
 
 export interface Product {
   id: string;
-  imagen_url: string;
-  imagenes_url?: string[];
+  imagenes_url: string[];
   banda_artista: string;
   tipo_prenda: string;
   talla?: string;
@@ -105,4 +105,6 @@ export interface GoldenSetEvaluation {
   razonamiento_analisis: string;
   descripcion_marketing: string;
   imagen_url: string;
+  producto_id?: string;
+  precio_final_aprobado?: number;
 }

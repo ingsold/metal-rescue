@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { CalendarPlus, Trash2, Calendar, MapPin, Image as ImageIcon, Camera, XCircle, Edit2, X, CheckCircle } from 'lucide-react';
+import { resizeImage } from '../lib/imageUtils';
 
 export const ManageEvents: React.FC = () => {
   const { events, addEvent, editEvent, deleteEvent, cancelEvent } = useApp();
@@ -97,7 +98,7 @@ export const ManageEvents: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Formulario */}
-        <div className="lg:col-span-1 bg-sabbath-900 border border-sabbath-800 rounded-2xl p-6 self-start sticky top-6">
+        <div className="lg:col-span-1 bg-sabbath-900 border border-sabbath-800 rounded-2xl p-6 self-start lg:sticky lg:top-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <CalendarPlus className="w-5 h-5 text-sabbath-400" />

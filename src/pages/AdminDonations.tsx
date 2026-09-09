@@ -1,20 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Clock, CheckCircle2, ShieldCheck, HeartHandshake, Trash2, Filter } from 'lucide-react';
+import { Package, Search, Filter, Trash2, ShieldAlert, ArrowUpDown, ChevronLeft, ChevronRight, Loader2, Clock, CheckCircle2, ShieldCheck, HeartHandshake } from 'lucide-react';
 import { ImageGallery } from '../components/ImageGallery';
+import { collection, query, orderBy, getDocs, limit, startAfter, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Product } from '../types';
 
 export const AdminDonations: React.FC = () => {
-  const { products, deleteProduct, user } = useApp();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { deleteProduct, user } = useApp();
+  
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+
   const [filter, setFilter] = useState<string>('todos');
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [hasMore, setHasMore] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const fetchProducts = async (isNext: boolean = false) => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      let constraints: any[] = [
+        where('usuario_donante_id', '==', user.id),
+        orderBy('fecha_donacion', 'desc'),
+        limit(itemsPerPage)
+      ];
+      if (isNext && lastVisible) {
+        constraints.push(startAfter(lastVisible));
+      }
+      const q = query(collection(db, 'products'), ...constraints);
+      const snap = await getDocs(q);
+      
+      const prods = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+      setProducts(prods);
+      
+      if (snap.docs.length > 0) {
+        setLastVisible(snap.docs[snap.docs.length - 1]);
+      }
+      setHasMore(snap.docs.length === itemsPerPage);
+    } catch(e) {
+      console.error("Error fetching admin donations", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts(false);
+  }, [itemsPerPage, user]);
+
+  const handleNextPage = () => {
+    setCurrentPage(p => p + 1);
+    fetchProducts(true);
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage(1);
+    setLastVisible(null);
+    fetchProducts(false);
+  };
 
   const filteredProducts = products.filter(p => {
-    // Solo mostrar las prendas del perfil de la sesión (del administrador)
-    if (p.usuario_donante_id !== user?.id) return false;
-    
     if (filter === 'todos') return true;
     return p.estado_publicacion === filter;
-  }).sort((a, b) => new Date(b.fecha_donacion).getTime() - new Date(a.fecha_donacion).getTime());
+  });
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -58,7 +111,7 @@ export const AdminDonations: React.FC = () => {
         {filteredProducts.map((product) => (
           <div key={product.id} className="bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden flex flex-col shadow-lg">
             <div className="h-48 relative">
-              <ImageGallery images={product.imagenes_url && product.imagenes_url.length > 0 ? product.imagenes_url : [product.imagen_url]} alt={product.banda_artista} />
+              <ImageGallery images={product.imagenes_url || []} alt={product.banda_artista} />
               <div className="absolute top-3 right-3">
                 {getStatusBadge(product.estado_publicacion)}
               </div>

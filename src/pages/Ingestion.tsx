@@ -81,7 +81,11 @@ export const Ingestion: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (imageFiles.length === 0) {
+    if (imageFiles.length === 0 || imageUrls.length === 0) {
+      alert('¡Alto ahí! Por favor, espera a que las imágenes terminen de procesarse o sube al menos una foto.');
+      return;
+    }
+    if (false) {
       alert('¡Alto ahí! Por favor, sube al menos una foto de la prenda antes de enviarla a revisión.');
       return;
     }
@@ -143,22 +147,7 @@ export const Ingestion: React.FC = () => {
         `
       });
 
-      addGoldenSetEvaluation({
-        banda_artista: result.banda_artista || banda,
-        tipo_prenda: tipo,
-        estado_conservacion: estado,
-        origen_adquisicion: origen,
-        evento_origen: evento || "Toque Bar Guatemala",
-        precio_estimado_donante: Number(precio),
-        precio_sugerido_ia: result.precio_sugerido_ia ? Number(result.precio_sugerido_ia) : 0,
-        autenticidad_ia: result.autenticidad_ia || 'Desconocido',
-        nivel_confianza_ia: result.nivel_confianza_ia ? Number(result.nivel_confianza_ia) : 0,
-        razonamiento_analisis: result.razonamiento_analisis || 'Sin razonamiento provisto.',
-        descripcion_marketing: result.descripcion_marketing || '',
-        imagen_url: imageUrls[0]
-      });
-
-      addProduct({
+      const productId = await addProduct({
         banda_artista: result.banda_artista || banda,
         tipo_prenda: tipo,
         talla: finalTalla,
@@ -166,12 +155,27 @@ export const Ingestion: React.FC = () => {
         origen_adquisicion: origen,
         evento_origen: evento,
         precio_estimado_donante: Number(precio),
-        precio_sugerido_ia: result.precio_sugerido_ia ? Number(result.precio_sugerido_ia) : 0,
+        precio_sugerido_ia: result.precio_sugerido_ia && !isNaN(Number(result.precio_sugerido_ia)) ? Number(result.precio_sugerido_ia) : 0,
         autenticidad_ia: result.autenticidad_ia || 'Desconocido',
         descripcion_marketing: result.descripcion_marketing || '',
-        imagen_url: imageUrls[0],
         imagenes_url: imageUrls,
         ...(user?.role === 'administrador' && adminDonorName.trim() !== '' ? { usuario_donante_nombre: adminDonorName } : {})
+      });
+
+      addGoldenSetEvaluation({
+        producto_id: productId,
+        banda_artista: result.banda_artista || banda,
+        tipo_prenda: tipo,
+        estado_conservacion: estado,
+        origen_adquisicion: origen,
+        evento_origen: evento || "Toque Bar Guatemala",
+        precio_estimado_donante: Number(precio),
+        precio_sugerido_ia: result.precio_sugerido_ia && !isNaN(Number(result.precio_sugerido_ia)) ? Number(result.precio_sugerido_ia) : 0,
+        autenticidad_ia: result.autenticidad_ia || 'Desconocido',
+        nivel_confianza_ia: result.nivel_confianza_ia && !isNaN(Number(result.nivel_confianza_ia)) ? Number(result.nivel_confianza_ia) : 0,
+        razonamiento_analisis: result.razonamiento_analisis || 'Sin razonamiento provisto.',
+        descripcion_marketing: result.descripcion_marketing || '',
+        imagen_url: imageUrls[0]
       });
 
       
@@ -188,8 +192,8 @@ export const Ingestion: React.FC = () => {
         `
       });
 
-      addProduct({
-        banda_artista: banda,
+      await addProduct({
+        banda_artista: banda || "Pendiente de revisión manual",
         tipo_prenda: tipo,
         talla: finalTalla,
         estado_conservacion: estado,
@@ -198,7 +202,6 @@ export const Ingestion: React.FC = () => {
         precio_estimado_donante: Number(precio),
         precio_sugerido_ia: 0,
         autenticidad_ia: 'Desconocido',
-        imagen_url: imageUrls[0],
         imagenes_url: imageUrls,
         ...(user?.role === 'administrador' && adminDonorName.trim() !== '' ? { usuario_donante_nombre: adminDonorName } : {})
       });
@@ -423,6 +426,7 @@ export const Ingestion: React.FC = () => {
                 placeholder="¿Cuánto crees que vale? (Q)"
                 className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-4 py-3 text-white focus:outline-none focus:border-sabbath-500"
               />
+              <p className="text-xs text-zinc-500 mt-2">Nota de transparencia: Al venderse esta prenda, se deducirá un 5% del precio final para cubrir gastos de funcionamiento. El 95% íntegro será destinado a los refugios.</p>
             </div>
             
             {user?.role === 'administrador' && (

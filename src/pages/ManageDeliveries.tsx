@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { ImageIcon, HandHeart, Edit, Trash2, X, Plus } from 'lucide-react';
 import { ShelterDelivery } from '../types';
 import { resizeImage } from '../lib/imageUtils';
+import { ImageGallery } from '../components/ImageGallery';
 
 export const ManageDeliveries: React.FC = () => {
   const { deliveries, addDelivery, editDelivery, deleteDelivery } = useApp();
@@ -56,7 +57,7 @@ export const ManageDeliveries: React.FC = () => {
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []) as File[];
     if (files.length > 0) {
       for (const file of files) {
         try {
@@ -110,7 +111,7 @@ export const ManageDeliveries: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Formulario */}
-        <div className="lg:col-span-1 bg-sabbath-900 border border-sabbath-800 rounded-2xl p-6 self-start sticky top-6">
+        <div className="lg:col-span-1 bg-sabbath-900 border border-sabbath-800 rounded-2xl p-6 self-start lg:sticky lg:top-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <HandHeart className="w-5 h-5 text-sabbath-400" />
@@ -253,9 +254,9 @@ export const ManageDeliveries: React.FC = () => {
                   <div key={delivery.id} className={`bg-sabbath-900 border ${editingId === delivery.id ? 'border-sabbath-500 shadow-lg shadow-sabbath-500/20' : 'border-sabbath-800'} rounded-xl overflow-hidden flex flex-col sm:flex-row relative transition-all`}>
                     
                     <div className="w-full sm:w-48 h-48 flex-shrink-0 relative overflow-hidden">
-                      <img src={images[0]} alt={delivery.refugio_nombre} className="w-full h-full object-cover" />
+                      <ImageGallery images={images} alt={delivery.refugio_nombre} thumbnail={true} />
                       {images.length > 1 && (
-                        <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md font-bold">
+                        <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md font-bold pointer-events-none">
                           +{images.length - 1}
                         </div>
                       )}

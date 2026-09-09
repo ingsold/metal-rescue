@@ -6,10 +6,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ImageGallery } from '../components/ImageGallery';
 
 export const Cart: React.FC = () => {
-  const { cart, removeFromCart, createOrder, user } = useApp();
+  const { cart, removeFromCart, createOrder, user, updateProfile } = useApp();
   const { showToast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [direccion, setDireccion] = useState(user?.direccion || '');
   const navigate = useNavigate();
 
   const total = cart.reduce((sum, item) => sum + (item.precio_final_aprobado || 0), 0);
@@ -21,8 +22,22 @@ export const Cart: React.FC = () => {
       return;
     }
     
+    if (!direccion.trim()) {
+      showToast('Por favor, ingresa una dirección de envío o entrega.', 'error');
+      return;
+    }
+
     setIsProcessing(true);
     try {
+      if (direccion !== user.direccion) {
+        await updateProfile({
+          name: user.name,
+          lastName: user.lastName || '',
+          username: user.username || '',
+          direccion: direccion,
+          telefono: user.telefono || ''
+        });
+      }
       await createOrder(user.id, user.email, `${user.name} ${user.lastName || ''}`.trim());
       setOrderComplete(true);
       // Simulate Email sending
@@ -84,7 +99,7 @@ export const Cart: React.FC = () => {
           <div className="flex-1 space-y-4">
             {cart.map((item) => (
               <div key={item.id} className="flex bg-sabbath-900 border border-sabbath-800 rounded-xl overflow-hidden p-4 gap-4 items-center">
-                <div className="w-24 h-24 rounded-md overflow-hidden flex-shrink-0"><ImageGallery images={item.imagenes_url && item.imagenes_url.length > 0 ? item.imagenes_url : [item.imagen_url]} alt={item.banda_artista} thumbnail /></div>
+                <div className="w-24 h-24 rounded-md overflow-hidden flex-shrink-0"><ImageGallery images={item.imagenes_url || []} alt={item.banda_artista} thumbnail /></div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-white uppercase">{item.banda_artista}</h3>
                   <p className="text-zinc-400 text-sm">{item.tipo_prenda} {item.talla ? `• ${item.talla}` : ''}</p>
@@ -103,10 +118,30 @@ export const Cart: React.FC = () => {
           </div>
           
           <div className="w-full lg:w-80">
-            <div className="bg-sabbath-900 border border-sabbath-800 rounded-xl p-6 sticky top-24">
+            <div className="bg-sabbath-900 border border-sabbath-800 rounded-xl p-6 lg:sticky lg:top-24">
               <h3 className="text-xl font-bold text-white mb-4 border-b border-sabbath-800 pb-4">Resumen de Orden</h3>
-              <div className="flex justify-between items-center mb-6 text-lg">
-                <span className="text-zinc-400">Total a donar:</span>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-zinc-300 mb-2">Dirección de Envío/Entrega</label>
+                <textarea
+                  value={direccion}
+                  onChange={(e) => setDireccion(e.target.value)}
+                  placeholder="Ej. Ciudad de Guatemala, Zona 1..."
+                  className="w-full bg-sabbath-950 border border-sabbath-800 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:border-sabbath-500 resize-none h-20"
+                />
+              </div>
+              <div className="space-y-2 mb-4 text-sm">
+                <div className="flex justify-between text-zinc-400">
+                  <span>Donación a Refugios (95%):</span>
+                  <span>Q{(total * 0.95).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-zinc-500">
+                  <span>Gastos de funcionamiento (5%):</span>
+                  <span>Q{(total * 0.05).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center mb-6 text-lg border-t border-sabbath-800 pt-4">
+                <span className="text-zinc-300 font-bold">Total a transferir:</span>
                 <span className="font-display font-bold text-2xl text-sabbath-400">Q{total}</span>
               </div>
               <button
