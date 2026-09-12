@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { ShieldAlert, Check, X, Edit3, Filter, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
+import { ShieldAlert, Check, X, Edit3, Filter, ChevronLeft, ChevronRight, PlusCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ImageGallery } from '../components/ImageGallery';
 import { collection, query, where, orderBy, getDocs, limit, startAfter, doc, updateDoc } from 'firebase/firestore';
@@ -77,6 +77,8 @@ export const AdminPanel: React.FC = () => {
   // Local state for editing prices and marketing descriptions
   const [edits, setEdits] = useState<Record<string, { price: number, desc: string }>>({});
   
+  const [processingItems, setProcessingItems] = useState<Record<string, boolean>>({});
+
   const handleEditChange = (id: string, field: 'price' | 'desc', value: any, initialPrice: number, initialDesc?: string) => {
     setEdits(prev => {
       const currentState = prev[id] || { price: initialPrice, desc: initialDesc || 'Clásico de colección para el mosh.' };
@@ -94,13 +96,29 @@ export const AdminPanel: React.FC = () => {
     return edits[id] || { price: initialPrice, desc: initialDesc || 'Clásico de colección para el mosh.' };
   };
   
-  const handleApprove = (id: string, initialPrice: number, initialDesc?: string) => {
-    const state = getEditState(id, initialPrice, initialDesc);
-    updateProductStatus(id, 'aprobado_publicado', state.price, state.desc);
+  const handleApprove = async (id: string, initialPrice: number, initialDesc?: string) => {
+    setProcessingItems(prev => ({ ...prev, [id]: true }));
+    try {
+      const state = getEditState(id, initialPrice, initialDesc);
+      await updateProductStatus(id, 'aprobado_publicado', state.price, state.desc);
+      setPendingProducts(prev => prev.filter(p => p.id !== id));
+    } catch (error) {
+      console.error("Error approving product", error);
+    } finally {
+      setProcessingItems(prev => ({ ...prev, [id]: false }));
+    }
   };
 
-  const handleReject = (id: string) => {
-    updateProductStatus(id, 'rechazado');
+  const handleReject = async (id: string) => {
+    setProcessingItems(prev => ({ ...prev, [id]: true }));
+    try {
+      await updateProductStatus(id, 'rechazado');
+      setPendingProducts(prev => prev.filter(p => p.id !== id));
+    } catch (error) {
+      console.error("Error rejecting product", error);
+    } finally {
+      setProcessingItems(prev => ({ ...prev, [id]: false }));
+    }
   };
 
   return (
@@ -239,13 +257,20 @@ export const AdminPanel: React.FC = () => {
                   <div className="flex gap-4 pt-4 border-t border-sabbath-800/50">
                     <button 
                       onClick={() => handleApprove(product.id, product.precio_sugerido_ia || 0, product.descripcion_marketing)}
-                      className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-md font-bold flex items-center justify-center gap-2 transition-colors"
+                      disabled={processingItems[product.id]}
+                      className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-md font-bold flex items-center justify-center gap-2 transition-colors disabled:bg-green-600/50 disabled:cursor-wait"
                     >
-                      <Check className="w-5 h-5" /> Aprobar y Publicar
+                      {processingItems[product.id] ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Check className="w-5 h-5" />
+                      )}
+                      {processingItems[product.id] ? 'Publicando...' : 'Aprobar y Publicar'}
                     </button>
                     <button 
                       onClick={() => handleReject(product.id)}
-                      className="px-6 bg-sabbath-950 border border-red-500/30 hover:bg-red-500/10 text-red-400 hover:text-red-300 py-3 rounded-md font-bold flex items-center justify-center gap-2 transition-colors"
+                      disabled={processingItems[product.id]}
+                      className="px-6 bg-sabbath-950 border border-red-500/30 hover:bg-red-500/10 text-red-400 hover:text-red-300 py-3 rounded-md font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-wait"
                     >
                       <X className="w-5 h-5" /> Rechazar
                     </button>
